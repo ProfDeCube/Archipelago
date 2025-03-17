@@ -1,12 +1,28 @@
 from dataclasses import dataclass
 from Options import Choice, Range, Toggle, PerGameCommonOptions, StartInventoryPool
 
-class WordsToWin(Range):
+class WinCondition(Choice):
+    """How do you win the game?"""
+    display_name = "Win Condition"
+    option_guess_words = 0
+    option_word_streak = 1
+    option_composition = 2
+    option_all_checks = 10
+    default = 1
+
+class CorrectWordsTarget(Range):
     """How many words you have to get right to hit you goal"""
-    display_name = "Words To Win"
+    display_name = "Correct Words Target"
     range_start = 1
     default = 10
-    range_end = 50
+    range_end = 100
+
+class WordStreakTarget(Range):
+    """How many words you have to get right in a row to hit you goal"""
+    display_name = "Word Streak Target"
+    range_start = 1
+    default = 10
+    range_end = 100
     
 class StartingLetters(Range):
     """How many letters you start with"""
@@ -16,14 +32,14 @@ class StartingLetters(Range):
     range_end = 26
 
 class StartingGuesses(Range):
-    """How many letters you start with"""
+    """How many Guesses you start with"""
     display_name = "Starting Guesses"
     range_start = 1
     default = 1
     range_end = 6
 
 class StartingCooldown(Range):
-    """How many letters you start with"""
+    """How long the cooldown between rounds starts at the start of the game"""
     display_name = "Starting Cooldown"
     range_start = 0
     default = 120
@@ -46,6 +62,10 @@ class TimeRewardSeconds(Range):
 class YellowUnlocked(Toggle):
     """Whether you start with yellow tiles shown or not"""
     display_name = "Yellow Unlocked"
+
+class EnergyLink(Toggle):
+    """Connect to the Energy Link network to deposit and withdraw shop points from a shared pool"""
+    display_name = "Energy Link"
 
 class UnusedLettersUnlocked(Toggle):
     """
@@ -181,7 +201,9 @@ class ExtraCooldownTrapSize(Range):
 
 @dataclass
 class WordipelagoOptions(PerGameCommonOptions):
-    words_to_win: WordsToWin
+    win_condition: WinCondition
+    words_to_win: CorrectWordsTarget
+    word_streak_target: WordStreakTarget
     green_checks: GreenChecks
     yellow_checks: YellowChecks
     letter_checks: LetterChecks
@@ -193,6 +215,7 @@ class WordipelagoOptions(PerGameCommonOptions):
     yellow_unlocked: YellowUnlocked
     unused_letters_unlocked: UnusedLettersUnlocked
     shuffle_typing: ShuffleTyping
+    energy_link: EnergyLink
 
     extra_time_reward_percent: ExtraTimeRewardPercent
     clue_item_reward_percent: ClueItemRewardPercent
