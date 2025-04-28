@@ -87,7 +87,7 @@ class WordipelagoWorld(World):
             )
             return {
                 **wordipelago_options,
-                "world_version": "0.8.5"
+                "world_version": "0.8.6"
             }
             
     def create_item(self, name: str) -> WordipelagoItem:
