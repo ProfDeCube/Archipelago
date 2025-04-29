@@ -96,7 +96,7 @@ class LetterChecks(Choice):
 
 class ShuffleTyping(Choice):
     """
-    ==Not Yet Implimented==
+    ==Not Yet Implemented==
     Whether typing on your physical keyboard mimics the layout of the game keyboard
     none: Typing is not shuffled
     querty: Typing is shuffled as if using a querty keyboard
@@ -112,7 +112,7 @@ class ShuffleTyping(Choice):
 
 class LetterBalancing(Range):
     """
-    ==Not Yet Implimented==
+    ==Not Yet Implemented==
     New letter usefulness, 0 = completely random, 5 = weighted to useful letters early
     """
     display_name = "Letter Balancing"
@@ -131,7 +131,7 @@ class ExtraTimeRewardPercent(Range):
     
 class ClueItemRewardPercent(Range):
     """
-    ==Not Yet Implimented==
+    ==Not Yet Implemented==
     What percentage of filler items will be replaced with Clue Points
     """
     display_name = "Clue Item Reward Percent"
@@ -141,7 +141,7 @@ class ClueItemRewardPercent(Range):
     
 class ClueItemPointSize(Range):
     """
-    ==Not Yet Implimented==
+    ==Not Yet Implemented==
     How many Clue Points are awarded with Clue Point filler items
     """
     display_name = "Clue Item Point Size"
@@ -151,7 +151,7 @@ class ClueItemPointSize(Range):
     
 class BadGuessTrapPercent(Range):
     """
-    ==Not Yet Implimented==
+    ==Not Yet Implemented==
     What percentage of filler items will be replaced with Bad Guess traps
     """
     display_name = "Bad Guess Trap Reward Percent"
@@ -161,7 +161,7 @@ class BadGuessTrapPercent(Range):
     
 class ExtraCooldownTrapPercent(Range):
     """
-    ==Not Yet Implimented==
+    ==Not Yet Implemented==
     What percentage of filler items will be replaced with Extra Cooldown traps
     """
     display_name = "Extra Cooldown Trap Percent"
@@ -171,7 +171,7 @@ class ExtraCooldownTrapPercent(Range):
     
 class ExtraCooldownTrapSize(Range):
     """
-    ==Not Yet Implimented==
+    ==Not Yet Implemented==
     How many second are added with the extra cooldown traps
     """
     display_name = "Extra Cooldown Trap Size"
