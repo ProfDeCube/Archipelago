@@ -55,8 +55,9 @@ item_data_table: Dict[str, WordipelagoItemData] = {
     "Suggestion": WordipelagoItemData(code=150,type=ItemClassification.filler, can_create = lambda world: False),
     
     "Clue Points": WordipelagoItemData(code=199,type=ItemClassification.filler, can_create = lambda world: False),
-    "Bad Guess Trap": WordipelagoItemData(code=198,type=ItemClassification.trap, can_create = lambda world: False),
-    "Extra Cooldown Trap": WordipelagoItemData(code=197,type=ItemClassification.trap, can_create = lambda world: False),
+    "Bad Guess Trap": WordipelagoItemData(code=197,type=ItemClassification.trap, can_create = lambda world: False),
+    "Random Guess Trap": WordipelagoItemData(code=198,type=ItemClassification.trap, can_create = lambda world: False),
+    "Extra Cooldown Trap": WordipelagoItemData(code=196,type=ItemClassification.trap, can_create = lambda world: False),
     "Word Master": WordipelagoItemData(code=1000,type=ItemClassification.progression, can_create = lambda world: False),
 }
 
