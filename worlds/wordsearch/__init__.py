@@ -38,10 +38,20 @@ class WordSearchWorld(World):
     starting_items = []
 
     def generate_early(self):
-        location_count = self.options.total_word_count - 1
-        item_count = 2 * self.options.total_word_count - (self.options.starting_word_count + self.options.starting_loop_count)
-        if(location_count < item_count):
-            raise OptionError('Not enough locations, increase total words or starting words/loops')
+        # Locations check
+        # location_count = self.options.total_word_count - 1
+        # item_count = 2 * self.options.total_word_count - (self.options.starting_word_count + self.options.starting_loop_count)
+        # if(location_count < item_count):
+        #     raise OptionError('Not enough locations, increase total words or starting words/loops')
+        
+        # Word List check
+        words = self.options.custom_word_list.value.replace(' ', '').split(',')
+        if(self.options.exclusively_custom_words):
+            for word in words:
+                if len(word) > self.options.grid_size:
+                    raise OptionError('Custom word list contains words larger than grid size')
+            if len(words) < self.options.total_word_count :
+                raise OptionError('Not enough words in custom word list to populate word search')
 
     def fill_slot_data(self):
             """
@@ -55,10 +65,12 @@ class WordSearchWorld(World):
                 "starting_loop_count",
                 "diagonal_words",
                 "backwards_words",
+                "exclusively_custom_words"
             )
             return {
                 **word_search_options,
                 "world_version": "0.1.0",
+                "custom_word_list": self.options.custom_word_list.value.replace(' ', '').split(',')
             }
             
     def create_item(self, name: str) -> WordSearchItem:
@@ -67,14 +79,75 @@ class WordSearchWorld(World):
     def create_items(self) -> None:
         item_pool: List[WordSearchItem] = []
 
-        for key, item in item_data_table.items():
-            if item.code and item.can_create(self):
-                for i in range(item.count(self)):
-                    item_pool.append(self.create_item(key))
-
         location_count = self.options.total_word_count - 1
         item_count = 2 * self.options.total_word_count - (self.options.starting_word_count + self.options.starting_loop_count)
-        if(location_count > item_count):
+        item_count_difference = item_count - location_count
+        print(item_count, location_count, item_count_difference)
+        print("")
+        item_count_map = {
+            'Word': self.options.total_word_count - self.options.starting_word_count,
+            '2 Words': 0,
+            '3 Words': 0,
+            'Word and Loop': 0, 
+            'Loop': self.options.total_word_count - self.options.starting_loop_count,
+            '2 Loops': 0,
+            '3 Loops': 0,
+        }
+        
+        while(item_count_difference > -2):
+            print(item_count_difference)
+            choice = self.multiworld.random.choice(['Word', 'Loop'])
+            if choice == 'Word and Loop':
+                if item_count_map['Word'] == 0 or item_count_map['Loop'] == 0:
+                    continue
+                item_count_map["Word"] -= 1
+                item_count_map["Loop"] -= 1
+                item_count_map["Word and Loop"] += 1
+                item_count_difference -= 1
+            if item_count_map[choice] == 0:
+                continue
+            
+            if choice == 'Word' :
+                if item_count_difference == 1 or item_count_map["Word"] == 1:
+                    item_count_map["Word"] -= 2
+                    item_count_map["2 Words"] += 1
+                    item_count_difference -= 1
+                else:
+                    word_count_choice = self.multiworld.random.choice(['2 Words', '3 Words'])
+                    if word_count_choice == '2 Words':
+                        item_count_map["Word"] -= 2
+                        item_count_map["2 Words"] += 1
+                        item_count_difference -= 1
+                    else:
+                        item_count_map["Word"] -= 3
+                        item_count_map["3 Words"] += 1
+                        item_count_difference -= 2
+            else:
+                if item_count_difference == 1 or item_count_map["Loop"] == 1:
+                    item_count_map["Loop"] -= 2
+                    item_count_map["2 Loops"] += 1
+                    item_count_difference -= 1
+                else:
+                    Loop_count_choice = self.multiworld.random.choice(['2 Loops', '3 Loops'])
+                    if Loop_count_choice == '2 Loops':
+                        item_count_map["Loop"] -= 2
+                        item_count_map["2 Loops"] += 1
+                        item_count_difference -= 1
+                    else:
+                        item_count_map["Loop"] -= 3
+                        item_count_map["3 Loops"] += 1
+                        item_count_difference -= 2
+                        
+        print(item_count_difference, item_count_map)
+
+        for key, item in item_data_table.items():
+            if item.code and item.can_create(self):
+                for i in range(item_count_map[key]):
+                    item_pool.append(self.create_item(key))
+
+        print(item_pool)
+        print("")
+        if(location_count - 2 > len(item_pool)):
             filler_items = location_count - item_count
             for i in range(filler_items):
                 item_pool.append(self.create_filler())

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Range, Toggle, DefaultOnToggle, PerGameCommonOptions, StartInventoryPool
+from Options import FreeText, Range, Toggle, DefaultOnToggle, PerGameCommonOptions, StartInventoryPool
 
 class GridSize(Range):
     """How large the game grid is, both dimensions are equal."""
@@ -39,7 +39,15 @@ class DiagonalWords(DefaultOnToggle):
     
 class BackwardsWords(Toggle):
     """Whether words will generate backwards."""
-    display_name = "backwards Words"
+    display_name = "Backwards Words"
+
+class CustomWordList(FreeText):
+    """A comma seperated list of words to hide in the wordsearch."""
+    display_name = "Custom Word List"
+
+class ExclusivelyCustomWords(Toggle):
+    """Whether to use the custom word list exclusively or to seed the original word list."""
+    display_name = "Exclusively Custom Words"
 
 @dataclass
 class WordSearchOptions(PerGameCommonOptions):
@@ -50,5 +58,7 @@ class WordSearchOptions(PerGameCommonOptions):
     starting_loop_count: StartingLoopCount
     diagonal_words: DiagonalWords
     backwards_words: BackwardsWords
+    custom_word_list: CustomWordList
+    exclusively_custom_words: ExclusivelyCustomWords
     
     start_inventory_from_pool: StartInventoryPool

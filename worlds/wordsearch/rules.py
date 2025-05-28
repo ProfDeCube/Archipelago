@@ -10,8 +10,21 @@ def all_needed_locations_checked(state, world):
     return state.has("Word Master", world.player)
 
 def word_find_rules(word_number, state, player, options):
-    has_enough_words = word_number < options.starting_word_count or state.has("Word", player, word_number - options.starting_word_count)
-    has_enough_loops = word_number < options.starting_loop_count or state.has("Loop", player, word_number - options.starting_loop_count)
+    has_words = options.starting_word_count
+    has_words += state.count('Word', player)
+    has_words += (state.count('2 Words', player) * 2)
+    has_words += (state.count('3 Words', player) * 3)
+    has_words += state.count('Word and Loop', player)
+    has_enough_words = word_number < options.starting_word_count or word_number <= has_words
+    
+    has_loops = options.starting_loop_count
+    has_loops += state.count('Loop', player)
+    has_loops += (state.count('2 Loops', player) * 2)
+    has_loops += (state.count('3 Loops', player) * 3)
+    has_loops += state.count('Word and Loop', player)
+    has_enough_loops = word_number < options.starting_loop_count or word_number <= has_loops
+    
+    # logger.info(f"{word_number}, {has_words}, {has_loops}")
     has_previous_word = True
     if(word_number == 1):
         has_previous_word = True

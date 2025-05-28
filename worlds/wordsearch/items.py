@@ -20,8 +20,13 @@ class WordSearchItemData(NamedTuple):
 
 item_data_table: Dict[str, WordSearchItemData] = {
 
-    "Word": WordSearchItemData(code=100,type=ItemClassification.progression, count = lambda world: world.options.total_word_count - world.options.starting_word_count ),
-    "Loop": WordSearchItemData(code=200,type=ItemClassification.progression, count = lambda world: world.options.total_word_count - world.options.starting_loop_count),
+    "Word": WordSearchItemData(code=100,type=ItemClassification.progression),
+    "2 Words": WordSearchItemData(code=101,type=ItemClassification.progression),
+    "3 Words": WordSearchItemData(code=102,type=ItemClassification.progression),
+    "Word and Loop": WordSearchItemData(code=109,type=ItemClassification.progression),
+    "Loop": WordSearchItemData(code=200,type=ItemClassification.progression),
+    "2 Loops": WordSearchItemData(code=201,type=ItemClassification.progression),
+    "3 Loops": WordSearchItemData(code=202,type=ItemClassification.progression),
     
     "Word Master": WordSearchItemData(code=1000,type=ItemClassification.progression, can_create = lambda world: False),
     
