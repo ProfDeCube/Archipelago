@@ -8,6 +8,7 @@ from .locations import WordipelagoLocation, location_data_table, get_location_ta
 from .options import WordipelagoOptions
 from .regions import region_data_table
 from .rules import create_rules
+from .logicrules import rule_logic, letter_scores
 
 
 
@@ -87,7 +88,9 @@ class WordipelagoWorld(World):
             )
             return {
                 **wordipelago_options,
-                "world_version": "0.8.6"
+                "world_version": "1.0.0",
+                "rule_logic": rule_logic["normal"],
+                "letter_scores" : letter_scores
             }
             
     def create_item(self, name: str) -> WordipelagoItem:
@@ -177,22 +180,25 @@ class WordipelagoWorld(World):
         if(location_count > item_count):
             filler_items = location_count - item_count
             percent_modifier = 1
-            total_item_percent = self.options.bad_guess_trap_percent
-            + self.options.clue_item_reward_percent
-            + self.options.extra_time_reward_percent
-            + self.options.extra_cooldown_trap_percent
-            if(total_item_percent > 100):
-                percent_modifier = 100.00 / total_item_percent
+            total_item_percent = (self.options.bad_guess_trap_percent
+                + self.options.random_guess_trap_percent
+                + self.options.clue_item_reward_percent
+                + self.options.extra_time_reward_percent
+                + self.options.extra_cooldown_trap_percent)
+            percent_modifier = 100.00 / total_item_percent
             
             extra_cooldown_trap_count = int((filler_items) * (self.options.extra_cooldown_trap_percent / 100.00) * percent_modifier)
             bad_guess_trap_count = int((filler_items) * (self.options.bad_guess_trap_percent / 100.00) * percent_modifier)
+            random_guess_trap_count = int((filler_items) * (self.options.random_guess_trap_percent / 100.00) * percent_modifier)
             clue_item_reward_count = int((filler_items) * (self.options.clue_item_reward_percent / 100.00) * percent_modifier)
             extra_time_reward_count = int((filler_items) * (self.options.extra_time_reward_percent / 100.00) * percent_modifier)
             
             for i in range(extra_cooldown_trap_count):
-                item_pool.append(WordipelagoItem("Extra Cooldown Trap", ItemClassification.trap, 197, self.player))  
+                item_pool.append(WordipelagoItem("Extra Cooldown Trap", ItemClassification.trap, 196, self.player))  
             for i in range(bad_guess_trap_count):
-                item_pool.append(WordipelagoItem("Bad Guess Trap", ItemClassification.trap, 198, self.player))  
+                item_pool.append(WordipelagoItem("Bad Guess Trap", ItemClassification.trap, 197, self.player))  
+            for i in range(random_guess_trap_count):
+                item_pool.append(WordipelagoItem("Random Guess Trap", ItemClassification.trap, 198, self.player))  
             for i in range(clue_item_reward_count):
                 item_pool.append(WordipelagoItem("Clue Points", ItemClassification.filler, 199, self.player))  
             for i in range(extra_time_reward_count):

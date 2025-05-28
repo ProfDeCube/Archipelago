@@ -96,18 +96,19 @@ class LetterChecks(Choice):
 
 class ShuffleTyping(Choice):
     """
-    ==Not Yet Implimented==
     Whether typing on your physical keyboard mimics the layout of the game keyboard
-    none: Typing is not shuffled
-    querty: Typing is shuffled as if using a querty keyboard
-    azerty: Typing is shuffled as if using a azerty keyboard
-    dvorak: Typing is shuffled as if using a dvorak keyboard
+    none: Typing and on screen keyboard are not shuffled
+    onscreen: On screen keyboard is shuffled, typing remains unshuffled
+    querty: Typing and on screen keyboard are shuffled as if using a querty keyboard
+    azerty: Typing and on screen keyboard are shuffled as if using a azerty keyboard
+    dvorak: Typing and on screen keyboard are shuffled as if using a dvorak keyboard
     """
     display_name = "Unused Letters Unlocked"
     option_none = 0
-    option_querty = 1
-    option_azerty = 2
-    option_dvorak = 3
+    option_onscreen = 1
+    option_querty = 2
+    option_azerty = 3
+    option_dvorak = 4
     default = 0
 
 class LetterBalancing(Range):
@@ -131,7 +132,6 @@ class ExtraTimeRewardPercent(Range):
     
 class ClueItemRewardPercent(Range):
     """
-    ==Not Yet Implimented==
     What percentage of filler items will be replaced with Clue Points
     """
     display_name = "Clue Item Reward Percent"
@@ -141,7 +141,6 @@ class ClueItemRewardPercent(Range):
     
 class ClueItemPointSize(Range):
     """
-    ==Not Yet Implimented==
     How many Clue Points are awarded with Clue Point filler items
     """
     display_name = "Clue Item Point Size"
@@ -151,7 +150,6 @@ class ClueItemPointSize(Range):
     
 class BadGuessTrapPercent(Range):
     """
-    ==Not Yet Implimented==
     What percentage of filler items will be replaced with Bad Guess traps
     """
     display_name = "Bad Guess Trap Reward Percent"
@@ -159,9 +157,17 @@ class BadGuessTrapPercent(Range):
     range_end = 100
     default = 0
     
+class RandomGuessTrapPercent(Range):
+    """
+    What percentage of filler items will be replaced with Random Guess traps
+    """
+    display_name = "Random Guess Trap Reward Percent"
+    range_start = 0
+    range_end = 100
+    default = 0
+    
 class ExtraCooldownTrapPercent(Range):
     """
-    ==Not Yet Implimented==
     What percentage of filler items will be replaced with Extra Cooldown traps
     """
     display_name = "Extra Cooldown Trap Percent"
@@ -171,13 +177,12 @@ class ExtraCooldownTrapPercent(Range):
     
 class ExtraCooldownTrapSize(Range):
     """
-    ==Not Yet Implimented==
     How many second are added with the extra cooldown traps
     """
     display_name = "Extra Cooldown Trap Size"
     range_start = 0
     range_end = 300
-    default = 60
+    default = 0
 
 @dataclass
 class WordipelagoOptions(PerGameCommonOptions):
@@ -198,6 +203,7 @@ class WordipelagoOptions(PerGameCommonOptions):
     clue_item_reward_percent: ClueItemRewardPercent
     clue_item_point_size: ClueItemPointSize
     bad_guess_trap_percent: BadGuessTrapPercent
+    random_guess_trap_percent: RandomGuessTrapPercent
     extra_cooldown_trap_percent: ExtraCooldownTrapPercent
     extra_cooldown_trap_size: ExtraCooldownTrapSize
 
