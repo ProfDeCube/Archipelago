@@ -43,7 +43,10 @@ class WordSearchWorld(World):
         # item_count = 2 * self.options.total_word_count - (self.options.starting_word_count + self.options.starting_loop_count)
         # if(location_count < item_count):
         #     raise OptionError('Not enough locations, increase total words or starting words/loops')
-        
+
+        # Grid size check
+        if(self.options.grid_size * self.options.grid_size < self.options.total_word_count * 6):
+            raise OptionError('Word search too dense, too many words in too small of a grid')
         # Word List check
         words = self.options.custom_word_list.value.replace(' ', '').split(',')
         if(self.options.exclusively_custom_words):
@@ -52,6 +55,11 @@ class WordSearchWorld(World):
                     raise OptionError('Custom word list contains words larger than grid size')
             if len(words) < self.options.total_word_count :
                 raise OptionError('Not enough words in custom word list to populate word search')
+
+        if(self.multiworld.players == 1):
+            if(self.options.starting_loop_count + self.options.starting_word_count < 6):
+                raise OptionError('Single player start too restrictive, increase starting words or loops')
+            
 
     def fill_slot_data(self):
             """
@@ -85,25 +93,20 @@ class WordSearchWorld(World):
         print(item_count, location_count, item_count_difference)
         print("")
         item_count_map = {
-            'Word': self.options.total_word_count - self.options.starting_word_count,
-            '2 Words': 0,
-            '3 Words': 0,
+            'Word': self.options.total_word_count - self.options.starting_word_count - 2,
+            '2 Words': 1,
+            '3 Words': 1,
             'Word and Loop': 0, 
-            'Loop': self.options.total_word_count - self.options.starting_loop_count,
-            '2 Loops': 0,
-            '3 Loops': 0,
+            'Loop': self.options.total_word_count - self.options.starting_loop_count - 2,
+            '2 Loops': 1,
+            '3 Loops': 1,
         }
         
         while(item_count_difference > -2):
+            if item_count_map['Word'] == 0 and item_count_map['Loop'] == 0:
+                break
             print(item_count_difference)
             choice = self.multiworld.random.choice(['Word', 'Loop'])
-            if choice == 'Word and Loop':
-                if item_count_map['Word'] == 0 or item_count_map['Loop'] == 0:
-                    continue
-                item_count_map["Word"] -= 1
-                item_count_map["Loop"] -= 1
-                item_count_map["Word and Loop"] += 1
-                item_count_difference -= 1
             if item_count_map[choice] == 0:
                 continue
             
@@ -113,7 +116,7 @@ class WordSearchWorld(World):
                     item_count_map["2 Words"] += 1
                     item_count_difference -= 1
                 else:
-                    word_count_choice = self.multiworld.random.choice(['2 Words', '3 Words'])
+                    word_count_choice = self.multiworld.random.choice(['2 Words', '3 Words', '3 Words', '3 Words', '3 Words'])
                     if word_count_choice == '2 Words':
                         item_count_map["Word"] -= 2
                         item_count_map["2 Words"] += 1
@@ -128,7 +131,7 @@ class WordSearchWorld(World):
                     item_count_map["2 Loops"] += 1
                     item_count_difference -= 1
                 else:
-                    Loop_count_choice = self.multiworld.random.choice(['2 Loops', '3 Loops'])
+                    Loop_count_choice = self.multiworld.random.choice(['2 Loops', '3 Loops', '3 Loops', '3 Loops', '3 Loops'])
                     if Loop_count_choice == '2 Loops':
                         item_count_map["Loop"] -= 2
                         item_count_map["2 Loops"] += 1
@@ -147,8 +150,8 @@ class WordSearchWorld(World):
 
         print(item_pool)
         print("")
-        if(location_count - 2 > len(item_pool)):
-            filler_items = location_count - item_count
+        if(location_count > len(item_pool)):
+            filler_items = location_count - len(item_pool)
             for i in range(filler_items):
                 item_pool.append(self.create_filler())
         self.multiworld.itempool += item_pool
