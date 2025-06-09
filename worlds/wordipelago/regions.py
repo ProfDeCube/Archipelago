@@ -12,6 +12,18 @@ region_data_table: Dict[str, WordipelagoRegionData] = {
         [ "Word Best", "Green Checks", "Yellow Checks"]
     ),
     "Words": WordipelagoRegionData([]),
+    "Words Chunk 1": WordipelagoRegionData([]),
+    "Words Chunk 2": WordipelagoRegionData([]),
+    "Words Chunk 3": WordipelagoRegionData([]),
+    "Words Chunk 4": WordipelagoRegionData([]),
+    "Words Chunk 5": WordipelagoRegionData([]),
+    "Streaks": WordipelagoRegionData([]),
+    "Streaks Chunk 1": WordipelagoRegionData([]),
+    "Streaks Chunk 2": WordipelagoRegionData([]),
+    "Streaks Chunk 3": WordipelagoRegionData([]),
+    "Streaks Chunk 4": WordipelagoRegionData([]),
+    "Streaks Chunk 5": WordipelagoRegionData([]),
+    "Point Shop": WordipelagoRegionData([]),
     "Green Checks": WordipelagoRegionData(
         ["Green Checks 1"]
     ),
@@ -27,7 +39,7 @@ region_data_table: Dict[str, WordipelagoRegionData] = {
     "Green Checks 4": WordipelagoRegionData(
         ["Green Checks 5"]
     ),
-    "Green Checks 5": WordipelagoRegionData(["Words"]),
+    "Green Checks 5": WordipelagoRegionData(["Words, Words Chunk 1"]),
     "Yellow Checks": WordipelagoRegionData(
         ["Yellow Checks 1"]
     ),

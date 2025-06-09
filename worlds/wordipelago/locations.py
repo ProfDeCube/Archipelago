@@ -114,10 +114,19 @@ location_data_table: Dict[str, WordipelagoLocationData] = {
     "YYY-Y": WordipelagoLocationData(region="Yellow Checks 4", address=329, can_create=lambda world: world.options.yellow_checks == 1),
     "YYYY-": WordipelagoLocationData(region="Yellow Checks 4", address=330, can_create=lambda world: world.options.yellow_checks == 1),
     "YYYYY": WordipelagoLocationData(region="Yellow Checks 5", address=331, can_create=lambda world: world.options.yellow_checks == 1),
+    
+    # Event Locations
+    "Goal Event Location": WordipelagoLocationData(region="Words", address=None)
 }
+
+
 
 def get_location_table():
     location_table = {name: data.address for name, data in location_data_table.items() if data.address is not None}
-    for i in range(1000):
+    for i in range(50):
         location_table["Word " + str(i + 1)] = 1001 + i
+    for i in range(50):
+        location_table[str(i + 1) + " Word Streak"] = 2001 + i
+    for i in range(50):
+        location_table["Point Shop Purchase " + str(i + 1)] = 3001 + i
     return location_table

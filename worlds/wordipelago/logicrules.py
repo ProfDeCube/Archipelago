@@ -1,20 +1,60 @@
 rule_logic = {
-  "normal": {
+  0: {
+    "green": {
+      "1": [0, 0, 1, False],
+      "2": [3, 30, 1, False],
+      "3": [4, 60, 2, True],
+      "4": [5, 80, 3, True],
+      "5": [6, 100, 4, True],
+    },
+    "yellow": {
+      "1": [0, 0, 1, True],
+      "2": [3, 30, 1, True],
+      "3": [4, 60, 2, True],
+      "4": [5, 80, 3, True],
+      "5": [6, 100, 4, True],
+    },
+    "letters": [3, 40, 0, False],
+    "pointShop": [4, 60, 2, False],
+    "streak": [4, 60, 2, False]
+  },
+  1: {
+    "green": {
+      "1": [0, 0, 1, False],
+      "2": [2, 30, 1, False],
+      "3": [3, 60, 2, False],
+      "4": [4, 80, 3, True],
+      "5": [5, 100, 4, True],
+    },
+    "yellow": {
+      "1": [0, 0, 1, True],
+      "2": [2, 30, 1, True],
+      "3": [3, 60, 2, True],
+      "4": [4, 80, 3, True],
+      "5": [5, 100, 4, True],
+    },
+    "letters": [2, 20, 0, False],
+    "pointShop": [3, 50, 1, False],
+    "streak": [3, 50, 1, False]
+  },
+  2: {
     "green": {
       "1": [0, 0, 1, False],
       "2": [1, 30, 1, False],
       "3": [2, 60, 2, False],
-      "4": [ 3, 80, 3, False],
+      "4": [3, 80, 3, False],
       "5": [4, 100, 4, True],
     },
     "yellow": {
       "1": [0, 0, 1, True],
       "2": [1, 30, 1, True],
       "3": [2, 60, 2, True],
-      "4": [ 3, 80, 3, True],
+      "4": [3, 80, 3, True],
       "5": [4, 100, 4, True],
     },
-    "letters": []
+    "letters": [0, 10, 0, False],
+    "pointShop": [0, 10, 0, False],
+    "streak": [0, 10, 0, False]
   }
 }
 

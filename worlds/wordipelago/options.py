@@ -1,12 +1,27 @@
 from dataclasses import dataclass
 from Options import Choice, Range, Toggle, PerGameCommonOptions, StartInventoryPool
 
-class WordsToWin(Range):
+class WordChecks(Range):
     """How many words you have to get right to hit you goal"""
-    display_name = "Words To Win"
+    display_name = "Word Checks"
     range_start = 1
     default = 10
     range_end = 50
+    
+class WordStreakChecks(Range):
+    """How many words you have to get right in a row to hit you goal"""
+    display_name = "Word Streak Checks"
+    range_start = 1
+    default = 10
+    range_end = 50
+    
+class WinCondition(Choice):
+    """How many words you have to get right in a row to hit you goal"""
+    display_name = "Win Condition"
+    default = 0
+    option_words = 0
+    option_streak = 1
+    option_words_and_streak = 2
     
 class StartingLetters(Range):
     """How many letters you start with"""
@@ -52,6 +67,33 @@ class UnusedLettersUnlocked(Toggle):
     Whether you start with keyboard letters fading out when discovered not to be in the current word
     """
     display_name = "Unused Letters Unlocked"   
+
+class LogicDifficulty(Choice):
+    """
+    How restrictive the logic for checks is
+    easy: easy to get checks, guesses/vowels/yellow likely early
+    normal: easier to get checks, but still restrictive in some ways
+    hard: bare minimum required to achive checks
+    """
+    display_name = "Logic Difficulty"
+    option_easy = 0
+    option_normal = 1
+    option_hard = 2
+    default = 1
+    
+class PointShopChecks(Range):
+    """How many items are present in the point shop"""
+    display_name = "Point Shop Checks"
+    range_start = 1
+    default = 3
+    range_end = 50
+    
+class PointShopCheckPrice(Range):
+    """How much AP items cost in the point shop, 0 for random"""
+    display_name = "Point Shop Check Price"
+    range_start = 0
+    default = 200
+    range_end = 1000
 
 class GreenChecks(Choice):
     """
@@ -148,6 +190,12 @@ class ClueItemPointSize(Range):
     range_end = 1000
     default = 100
     
+class ClueItemDefaultFiller(Toggle):
+    """
+    Whether the default filler item is point shop points, Suggestions if not
+    """
+    display_name = "Points as Default Filler"
+   
 class BadGuessTrapPercent(Range):
     """
     What percentage of filler items will be replaced with Bad Guess traps
@@ -186,22 +234,37 @@ class ExtraCooldownTrapSize(Range):
 
 @dataclass
 class WordipelagoOptions(PerGameCommonOptions):
-    words_to_win: WordsToWin
-    green_checks: GreenChecks
-    yellow_checks: YellowChecks
-    letter_checks: LetterChecks
+    # Game Conditions
     starting_letters: StartingLetters
     starting_guesses: StartingGuesses
     starting_cooldown: StartingCooldown
-    time_reward_count: TimeRewardCount
-    time_reward_seconds: TimeRewardSeconds
     yellow_unlocked: YellowUnlocked
     unused_letters_unlocked: UnusedLettersUnlocked
     shuffle_typing: ShuffleTyping
-
+    
+    logic_difficulty: LogicDifficulty
+    
+    # Win Conditions
+    word_checks: WordChecks
+    word_streak_checks: WordStreakChecks
+    win_condition: WinCondition
+    
+    # Non Goal Checks
+    point_shop_checks: PointShopChecks
+    point_shop_check_price: PointShopCheckPrice
+    green_checks: GreenChecks
+    yellow_checks: YellowChecks
+    letter_checks: LetterChecks
+    
+    # Items
+    time_reward_count: TimeRewardCount
+    time_reward_seconds: TimeRewardSeconds
     extra_time_reward_percent: ExtraTimeRewardPercent
     clue_item_reward_percent: ClueItemRewardPercent
     clue_item_point_size: ClueItemPointSize
+    clue_item_default_filler: ClueItemDefaultFiller
+    
+    #Traps
     bad_guess_trap_percent: BadGuessTrapPercent
     random_guess_trap_percent: RandomGuessTrapPercent
     extra_cooldown_trap_percent: ExtraCooldownTrapPercent
