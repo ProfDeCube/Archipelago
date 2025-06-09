@@ -36,6 +36,13 @@ class StartingGuesses(Range):
     range_start = 1
     default = 1
     range_end = 6
+    
+class AdditionalGuesses(Range):
+    """How many extra guesses are added to the item pool"""
+    display_name = "Additional Guesses"
+    range_start = 0
+    default = 0
+    range_end = 10
 
 class StartingCooldown(Range):
     """How long (in seconds) the new round cooldown is at the start of the game"""
@@ -237,6 +244,7 @@ class WordipelagoOptions(PerGameCommonOptions):
     # Game Conditions
     starting_letters: StartingLetters
     starting_guesses: StartingGuesses
+    additional_guesses: AdditionalGuesses
     starting_cooldown: StartingCooldown
     yellow_unlocked: YellowUnlocked
     unused_letters_unlocked: UnusedLettersUnlocked

@@ -46,7 +46,7 @@ item_data_table: Dict[str, WordipelagoItemData] = {
     "Letter Y": WordipelagoItemData(code=25,type=ItemClassification.progression),
     "Letter Z": WordipelagoItemData(code=26,type=ItemClassification.progression),
 
-    "Guess": WordipelagoItemData(code=100,type=ItemClassification.progression | ItemClassification.useful, count = lambda world: 6 ),
+    "Guess": WordipelagoItemData(code=100,type=ItemClassification.progression | ItemClassification.useful, count = lambda world: 6 + world.options.additional_guesses ),
     "Time": WordipelagoItemData(code=200,type=ItemClassification.filler, count = lambda world: world.options.time_reward_count),
     
     "Yellow Letters": WordipelagoItemData(code=301,type=ItemClassification.progression | ItemClassification.useful, can_create = lambda world: not world.options.yellow_unlocked),
