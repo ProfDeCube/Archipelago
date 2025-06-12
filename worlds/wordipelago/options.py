@@ -121,7 +121,7 @@ class GreenChecks(Choice):
     option_best = 1
     option_composition = 2
     option_complete = 3
-    default = 1
+    default = 3
 
 class YellowChecks(Choice):
     """

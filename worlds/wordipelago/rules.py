@@ -6,13 +6,13 @@ if TYPE_CHECKING:
     from . import WordipelagoWorld
 
 def end_game_event_check(state, world):
-    win_condition = world.options.win_condition
+    win_condition = world.options.win_condition.value
     if(win_condition == 0):
-        return state.has(str(world.options.word_checks) + ' Words', world.player)
+        return state.has('Word ' + str(world.options.word_checks), world.player)
     if(win_condition == 1):
-        return state.has(str(world.options.word_streak_checks) + ' Streaks', world.player)
+        return state.has(str(world.options.word_streak_checks) + ' Word Streak', world.player)
     if(win_condition == 2):
-        return state.has(str(world.options.word_checks) + ' Words', world.player) and state.has(str(world.options.word_streak_checks) + ' Streaks', world.player)
+        return state.has('Word ' + str(world.options.word_checks), world.player) and state.has(str(world.options.word_streak_checks) + ' Word Streaks', world.player)
 
 def all_needed_locations_checked(state, world):
     return state.has("Word Master", world.player)
@@ -171,7 +171,7 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location("YYYYY").item_rule = lambda item: item.name != 'Yellow Letters'
         
         # Events
-        world.get_location('Goal Event Location').access_rule = lambda state: end_game_event_check(state, world)
+        world.get_location('Goal Event Location').access_rule = lambda state: (lambda state, world: end_game_event_check(state, world))
     
 
-    world.multiworld.completion_condition[world.player] = lambda state: all_needed_locations_checked(state, world)
+    world.multiworld.completion_condition[world.player] = lambda state: (lambda state, world: all_needed_locations_checked(state, world))
