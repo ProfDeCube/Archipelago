@@ -176,7 +176,7 @@ class WordipelagoWorld(World):
             location_count += 31
 
 
-        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count
+        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count + self.options.additional_guesses
         if not self.options.yellow_unlocked: 
             item_count += 1
         if not self.options.unused_letters_unlocked: 
@@ -229,7 +229,7 @@ class WordipelagoWorld(World):
         if(self.options.yellow_checks == 1):
             location_count += 31
 
-        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count
+        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count + self.options.additional_guesses
         if not self.options.yellow_unlocked: 
             item_count += 1
         if not self.options.unused_letters_unlocked: 
@@ -269,7 +269,7 @@ class WordipelagoWorld(World):
                     if((i + 1) % word_streak_chunk_size == 0):
                         event_name = str(i + 1) + " Streaks"
                         chunk_region.add_locations({event_name: None})
-                    
+            print("=================", loc_count_difference)
             if(region_name == 'Point Shop'):
                 for i in range(self.options.point_shop_checks):
                     name = "Point Shop Purchase " + str(i + 1)
