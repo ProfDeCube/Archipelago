@@ -262,9 +262,7 @@ class WordipelagoWorld(World):
                     print(str(locs) + ': ' + location_name)
                     region.add_locations({location_name: location_data.address}, WordipelagoLocation)
             if(region_name == 'Words'):
-                print("WORDS: " + str(self.options.word_checks))
-                print("WORDS TOTAL: " + str(self.options.word_checks + max(0, -loc_count_difference)))
-                for i in range(self.options.word_checks + max(0, -loc_count_difference)):
+                for i in range(self.options.word_checks):
                     locs = locs + 1
                     chunk_region = self.get_region('Words Chunk ' + str(min(5, i // word_chunk_size + 1)))
                     name = "Word " + str(i + 1)
@@ -286,7 +284,7 @@ class WordipelagoWorld(World):
                         event_name = str(i + 1) + " Streaks"
                         chunk_region.add_locations({event_name: None})
             if(region_name == 'Point Shop'):
-                for i in range(self.options.point_shop_checks):
+                for i in range(self.options.point_shop_checks  + max(0, -loc_count_difference)):
                     locs = locs + 1
                     name = "Point Shop Purchase " + str(i + 1)
                     print(str(locs) + ': ' + name)
@@ -301,7 +299,7 @@ class WordipelagoWorld(World):
             WordipelagoItem("Word Master", ItemClassification.progression, None, self.player)
         )
         
-        for i in range(1, self.options.word_checks + max(0, -loc_count_difference) + 1):
+        for i in range(1, self.options.word_checks + 1):
             if(i != 0 and i % word_chunk_size == 0):
                 self.get_location(str(i) + " Words").place_locked_item(
                     WordipelagoItem(str(i) + " Words", ItemClassification.progression, None, self.player)
