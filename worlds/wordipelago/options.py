@@ -16,7 +16,7 @@ class WordStreakChecks(Range):
     range_end = 50
     
 class WinCondition(Choice):
-    """How many words you have to get right in a row to hit you goal"""
+    """What is needed to achieve victory, hitting the target for words, streaks or both."""
     display_name = "Win Condition"
     default = 0
     option_words = 0
@@ -38,8 +38,7 @@ class StartingGuesses(Range):
     range_end = 6
     
 class AdditionalGuesses(Range):
-    """How many extra guesses are added to the item pool.
-    You can not exceed 6 guesses in play"""
+    """How many extra guesses are added to the item pool.\nYou can not exceed 6 guesses in play"""
     display_name = "Additional Guesses"
     range_start = 0
     default = 0
@@ -53,16 +52,16 @@ class StartingCooldown(Range):
     range_end = 18000
 
 class TimeRewardCount(Range):
-    """The number of new round cooldown reduction rewards in the pool.
-    Multiply by time_reward_seconds for total reduction."""
+    """The number of new round cooldown reduction rewards in the pool."""
+    """Multiply by time_reward_seconds for total reduction."""
     display_name = "Time Reward Count"
     range_start = 0
     default = 10
     range_end = 30
 
 class TimeRewardSeconds(Range):
-    """How many seconds each time reward decreases the new round cooldown by.
-    Multiply by time_reward_count for total reduction."""
+    """How many seconds each time reward decreases the new round cooldown by."""
+    """Multiply by time_reward_count for total reduction."""
     display_name = "Time Reward Seconds"
     range_start = 0
     default = 10
@@ -73,18 +72,14 @@ class YellowUnlocked(Toggle):
     display_name = "Yellow Unlocked"
 
 class UnusedLettersUnlocked(Toggle):
-    """
-    Whether you start with keyboard letters fading out when discovered not to be in the current word.
-    """
+    """Whether you start with keyboard letters fading out when discovered not to be in the current word."""
     display_name = "Unused Letters Unlocked"   
 
 class LogicDifficulty(Choice):
-    """
-    How restrictive the logic for checks is.
-    easy: easy to get checks, guesses/vowels/yellow likely early.
-    normal: easier to get checks, but still restrictive in some ways.
-    hard: bare minimum required to achive checks.
-    """
+    """How restrictive the logic for checks is."""
+    """easy: easy to get checks, guesses/vowels/yellow likely early."""
+    """normal: easier to get checks, but still restrictive in some ways."""
+    """hard: bare minimum required to achive checks."""
     display_name = "Logic Difficulty"
     option_easy = 0
     option_normal = 1

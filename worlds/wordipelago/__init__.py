@@ -190,7 +190,8 @@ class WordipelagoWorld(World):
                 + self.options.shop_points_item_reward_percent
                 + self.options.extra_time_reward_percent
                 + self.options.extra_cooldown_trap_percent)
-            percent_modifier = 100.00 / total_item_percent
+            if(total_item_percent > 0):
+                percent_modifier = 100.00 / total_item_percent
             
             extra_cooldown_trap_count = int((filler_items) * (self.options.extra_cooldown_trap_percent / 100.00) * percent_modifier)
             bad_guess_trap_count = int((filler_items) * (self.options.bad_guess_trap_percent / 100.00) * percent_modifier)
@@ -252,7 +253,7 @@ class WordipelagoWorld(World):
             }, WordipelagoLocation)
             if(region_name == 'Words'):
                 for i in range(self.options.word_checks + max(0, -loc_count_difference)):
-                    chunk_region = self.get_region('Words Chunk ' + str(i // word_chunk_size + 1))
+                    chunk_region = self.get_region('Words Chunk ' + min(5, str(i // word_chunk_size + 1)))
                     name = "Word " + str(i + 1)
                     chunk_region.add_locations({name: 1001 + i})
                     if((i + 1) % word_chunk_size == 0):
@@ -261,7 +262,7 @@ class WordipelagoWorld(World):
                     
             if(region_name == 'Streaks'):
                 for i in range(self.options.word_streak_checks):
-                    chunk_region = self.get_region('Streaks Chunk ' + str(i // word_streak_chunk_size + 1))
+                    chunk_region = self.get_region('Streaks Chunk ' + min(5, str(i // word_streak_chunk_size + 1)))
                     name = str(i + 1) + " Word Streak"
                     chunk_region.add_locations({name: 2001 + i})
                     
