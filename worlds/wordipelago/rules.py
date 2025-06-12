@@ -133,6 +133,9 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location("Used " + key).access_rule = lambda state: needed_for_letter(state, world.player, key, *(rules_for_difficulty["letters"]))
         world.get_location("Used " + key).item_rule = lambda item: item.name != "Letter " + key
         # rules_for_difficulty["letters"].append("Letter " + key)
+        
+    for shop_check in range(1, world.options.point_shop_checks + 1):
+        world.get_location("Point Shop Purchase " + str(shop_check)).item_rule =  lambda item: not item.trap and item.name != 'Shop Points'
 
     if(world.options.yellow_checks == 1):
         # Deny yellow letters being placed behind yellow positional checks

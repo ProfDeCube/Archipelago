@@ -5,9 +5,9 @@ from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
 from .items import WordipelagoItem, item_data_table, item_table
 from .locations import WordipelagoLocation, location_data_table, get_location_table
-from .options import WordipelagoOptions
+from .options import WordipelagoOptions, option_groups
 from .regions import region_data_table
-from .rules import create_rules, needed_for_words
+from .rules import create_rules
 from .logicrules import rule_logic, letter_scores
 
 
@@ -23,8 +23,8 @@ class WordipelagoWebWorld(WebWorld):
         link="guide/en",
         authors=["ProfDeCube"]
     )
-
     tutorials = [setup_en]
+    option_groups = option_groups
 
 
 class WordipelagoWorld(World):
@@ -37,9 +37,10 @@ class WordipelagoWorld(World):
     location_name_to_id = get_location_table()
     item_name_to_id = item_table
     starting_items = []
+    
 
     def generate_early(self):
-        location_count = self.options.word_checks - 1 # Victory Event
+        location_count = self.options.word_checks
         if(self.options.letter_checks >= 1):
             location_count += 6
         if(self.options.letter_checks >= 2):
@@ -86,8 +87,9 @@ class WordipelagoWorld(World):
                 "shuffle_typing",
                 "start_inventory_from_pool",
                 "extra_cooldown_trap_size",
-                "clue_item_point_size",
-                "point_shop_check_price"
+                "shop_points_item_size",
+                "point_shop_check_price",
+                "word_weighting"
             )
             return {
                 **wordipelago_options,
@@ -185,7 +187,7 @@ class WordipelagoWorld(World):
             percent_modifier = 1
             total_item_percent = (self.options.bad_guess_trap_percent
                 + self.options.random_guess_trap_percent
-                + self.options.clue_item_reward_percent
+                + self.options.shop_points_item_reward_percent
                 + self.options.extra_time_reward_percent
                 + self.options.extra_cooldown_trap_percent)
             percent_modifier = 100.00 / total_item_percent
@@ -193,7 +195,7 @@ class WordipelagoWorld(World):
             extra_cooldown_trap_count = int((filler_items) * (self.options.extra_cooldown_trap_percent / 100.00) * percent_modifier)
             bad_guess_trap_count = int((filler_items) * (self.options.bad_guess_trap_percent / 100.00) * percent_modifier)
             random_guess_trap_count = int((filler_items) * (self.options.random_guess_trap_percent / 100.00) * percent_modifier)
-            clue_item_reward_count = int((filler_items) * (self.options.clue_item_reward_percent / 100.00) * percent_modifier)
+            shop_points_item_reward_count = int((filler_items) * (self.options.shop_points_item_reward_percent / 100.00) * percent_modifier)
             extra_time_reward_count = int((filler_items) * (self.options.extra_time_reward_percent / 100.00) * percent_modifier)
             
             for i in range(extra_cooldown_trap_count):
@@ -202,19 +204,13 @@ class WordipelagoWorld(World):
                 item_pool.append(WordipelagoItem("Bad Guess Trap", ItemClassification.trap, 197, self.player))  
             for i in range(random_guess_trap_count):
                 item_pool.append(WordipelagoItem("Random Guess Trap", ItemClassification.trap, 198, self.player))  
-            for i in range(clue_item_reward_count):
-                item_pool.append(WordipelagoItem("Clue Points", ItemClassification.filler, 199, self.player))  
+            for i in range(shop_points_item_reward_count):
+                item_pool.append(WordipelagoItem("Shop Points", ItemClassification.filler, 199, self.player))  
             for i in range(extra_time_reward_count):
-                item_pool.append(WordipelagoItem("Time", ItemClassification.filler, 200, self.player))
+                item_pool.append(WordipelagoItem("Cooldown Reduction", ItemClassification.filler, 200, self.player))
             for i in range(location_count - (len(item_pool))):
                 item_pool.append(self.create_filler())
         self.multiworld.itempool += item_pool
-
-        # rules_for_difficulty = rule_logic[self.options.logic_difficulty.value]
-        # self.get_location('Word 1').access_rule = lambda state: needed_for_words(state, self.player, *(rules_for_difficulty["green"]["5"]))
-        # for i in range(2, self.options.word_checks):
-        #     self.get_location('Word ' + str(i)).can_reach = lambda state: state.can_reach_location('Word ' + str(i - 1), player=self.player)
-        # self.get_location('Word ' + str(self.options.word_checks)).progress_type = LocationProgressType.PRIORITY
 
     def create_regions(self) -> None:
         # Filler Items
