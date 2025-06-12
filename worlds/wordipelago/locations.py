@@ -81,7 +81,6 @@ location_data_table: Dict[str, WordipelagoLocationData] = {
     "GGG-G": WordipelagoLocationData(region="Green Checks 4", address=229, can_create=lambda world: world.options.green_checks >= 2),
     "GGGG-": WordipelagoLocationData(region="Green Checks 4", address=230, can_create=lambda world: world.options.green_checks >= 2),
     "GGGGG": WordipelagoLocationData(region="Green Checks 5", address=231, can_create=lambda world: world.options.green_checks >= 2),
- 
 
     "----Y": WordipelagoLocationData(region="Yellow Checks 1", address=301, can_create=lambda world: world.options.yellow_checks == 1),
     "---Y-": WordipelagoLocationData(region="Yellow Checks 1", address=302, can_create=lambda world: world.options.yellow_checks == 1),
@@ -114,9 +113,6 @@ location_data_table: Dict[str, WordipelagoLocationData] = {
     "YYY-Y": WordipelagoLocationData(region="Yellow Checks 4", address=329, can_create=lambda world: world.options.yellow_checks == 1),
     "YYYY-": WordipelagoLocationData(region="Yellow Checks 4", address=330, can_create=lambda world: world.options.yellow_checks == 1),
     "YYYYY": WordipelagoLocationData(region="Yellow Checks 5", address=331, can_create=lambda world: world.options.yellow_checks == 1),
-    
-    # Event Locations
-    "Goal Event Location": WordipelagoLocationData(region="Words", address=None)
 }
 
 
