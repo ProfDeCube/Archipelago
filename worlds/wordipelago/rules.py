@@ -14,8 +14,8 @@ def end_game_event_check(state, world):
     if(win_condition == 2):
         return state.has('Word ' + str(world.options.word_checks), world.player) and state.has(str(world.options.word_streak_checks) + ' Word Streaks', world.player)
 
-def all_needed_locations_checked(state, world):
-    return state.has("Word Master", world.player)
+def all_needed_locations_checked(state, player):
+    return state.has("Word Master", player)
 
 alpahbet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 
@@ -174,4 +174,4 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location('Goal Event Location').access_rule = lambda state: (lambda state, world: end_game_event_check(state, world))
     
 
-    world.multiworld.completion_condition[world.player] = lambda state: (lambda state, world: all_needed_locations_checked(state, world))
+    world.multiworld.completion_condition[world.player] = lambda state: all_needed_locations_checked(state, world.player)

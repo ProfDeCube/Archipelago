@@ -40,7 +40,7 @@ class WordipelagoWorld(World):
     
 
     def generate_early(self):
-        location_count = self.options.word_checks
+        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.point_shop_checks
         if(self.options.letter_checks >= 1):
             location_count += 6
         if(self.options.letter_checks >= 2):
@@ -215,7 +215,7 @@ class WordipelagoWorld(World):
 
     def create_regions(self) -> None:
         # Filler Items
-        location_count = self.options.word_checks
+        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.point_shop_checks
         if(self.options.letter_checks >= 1):
             location_count += 6
         if(self.options.letter_checks >= 2):
