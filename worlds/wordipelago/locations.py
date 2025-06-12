@@ -123,6 +123,6 @@ def get_location_table():
         location_table["Word " + str(i + 1)] = 1001 + i
     for i in range(50):
         location_table[str(i + 1) + " Word Streak"] = 2001 + i
-    for i in range(50):
+    for i in range(200):
         location_table["Point Shop Purchase " + str(i + 1)] = 3001 + i
     return location_table
