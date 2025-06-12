@@ -134,7 +134,7 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location("Used " + key).item_rule = lambda item: item.name != "Letter " + key
         
     for shop_check in range(world.options.point_shop_checks):
-        world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: not item.trap and item.name != 'Shop Points'
+        world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: item.name != 'Shop Points'
 
     if(world.options.yellow_checks == 1):
         # Deny yellow letters being placed behind yellow positional checks
