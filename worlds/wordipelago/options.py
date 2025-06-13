@@ -93,7 +93,7 @@ class WordWeighting(Range):
     default = 1
     range_end = 10
     
-class PointShopChecks(Range):
+class MinimumPointShopChecks(Range):
     """How many items are present in the point shop."""
     display_name = "Point Shop Checks"
     range_start = 1
@@ -102,7 +102,8 @@ class PointShopChecks(Range):
     
 class PointShopCheckPrice(Range):
     """How much AP items cost in the point shop.
-    0 for a random assortment (multiples of 100)"""
+    0 for a random assortment (multiples of 100).
+    If running a restrictive game, it is recommended to keep this low."""
     display_name = "Point Shop Check Price"
     range_start = 0
     default = 200
@@ -256,7 +257,7 @@ class WordipelagoOptions(PerGameCommonOptions):
     win_condition: WinCondition
     
     # Non Goal Checks
-    point_shop_checks: PointShopChecks
+    minimum_point_shop_checks: MinimumPointShopChecks
     point_shop_check_price: PointShopCheckPrice
     green_checks: GreenChecks
     yellow_checks: YellowChecks
@@ -298,7 +299,7 @@ option_groups = [
         WordWeighting
     ]),
     OptionGroup("Locations", [
-        PointShopChecks,
+        MinimumPointShopChecks,
         PointShopCheckPrice,
         GreenChecks,
         YellowChecks,

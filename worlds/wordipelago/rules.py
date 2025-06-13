@@ -136,7 +136,7 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location("Used " + key).access_rule = lambda state: needed_for_letter(state, world.player, key, *(rules_for_difficulty["letters"]))
         world.get_location("Used " + key).item_rule = lambda item: item.name != "Letter " + key
         
-    for shop_check in range(world.options.point_shop_checks):
+    for shop_check in range(world.options.minimum_point_shop_checks):
         world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: item.name != 'Shop Points'
 
     if(world.options.yellow_checks == 1):

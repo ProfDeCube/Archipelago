@@ -40,7 +40,7 @@ class WordipelagoWorld(World):
     
 
     def generate_early(self):
-        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.point_shop_checks
+        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.minimum_point_shop_checks
         if(self.options.letter_checks >= 1):
             location_count += 6
         if(self.options.letter_checks >= 2):
@@ -178,7 +178,7 @@ class WordipelagoWorld(World):
                         item_pool.append(self.create_item(key))
             
         # Filler Items
-        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.point_shop_checks
+        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.minimum_point_shop_checks
         if(self.options.letter_checks >= 1):
             location_count += 6
         if(self.options.letter_checks >= 2):
@@ -237,7 +237,7 @@ class WordipelagoWorld(World):
 
     def create_regions(self) -> None:
         # Filler Items
-        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.point_shop_checks
+        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.minimum_point_shop_checks
         if(self.options.letter_checks >= 1):
             location_count += 6
         if(self.options.letter_checks >= 2):
@@ -301,7 +301,7 @@ class WordipelagoWorld(World):
                         chunk_region.add_locations({event_name: None})
             print(loc_count_difference)
             if(region_name == 'Point Shop'):
-                for i in range(self.options.point_shop_checks + max(0, -loc_count_difference)):
+                for i in range(self.options.minimum_point_shop_checks + max(0, -loc_count_difference)):
                     locs = locs + 1
                     name = "Point Shop Purchase " + str(i + 1)
                     print(str(locs) + ': ' + name)
