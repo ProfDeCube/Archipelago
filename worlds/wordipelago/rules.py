@@ -38,7 +38,8 @@ def create_rules(world: "WordipelagoWorld"):
 
     multiworld.get_region("Menu", player).add_exits(['Letters'])
     multiworld.get_region("Letters", player).add_exits(
-        [ "Word Best", "Green Checks", "Yellow Checks"]
+        [ "Word Best", "Green Checks", "Yellow Checks", 'Point Shop'],
+        {"Point Shop": lambda state: needed_for_words(state, world.player, *(rules_for_difficulty["pointShop"]))}
     )
     
     multiworld.get_region("Green Checks", player).add_exits(
@@ -54,8 +55,10 @@ def create_rules(world: "WordipelagoWorld"):
         {"Green Checks 3": lambda state: needed_for_words(state, world.player, *(rules_for_difficulty["green"]["3"]))}
     )
     multiworld.get_region("Green Checks 3", player).add_exits(
-        ['Green Checks 4', 'Point Shop'],
-        {"Green Checks 4": lambda state: needed_for_words(state, world.player, *(rules_for_difficulty["green"]["4"]))}
+        ['Green Checks 4'],
+        {
+            "Green Checks 4": lambda state: needed_for_words(state, world.player, *(rules_for_difficulty["green"]["4"])),
+        }
     )
     multiworld.get_region("Green Checks 4", player).add_exits(
         ['Green Checks 5'],
