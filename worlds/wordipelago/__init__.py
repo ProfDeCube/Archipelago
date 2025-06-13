@@ -63,12 +63,12 @@ class WordipelagoWorld(World):
         print('EARLY', 'locs', location_count, 'items', )
         if(self.multiworld.players == 1):
             
-            if(self.options.green_checks == 0 and self.options.yellow_checks == 0):
-                raise OptionError('Not enough early game locations')
-            if(self.options.letter_checks == 0 and self.options.yellow_checks == 0):
-                raise OptionError('Not enough early game locations')
-            if(self.options.green_checks == 0 and self.options.letter_checks == 0):
-                raise OptionError('Not enough early game locations')
+            # if(self.options.green_checks == 0 and self.options.yellow_checks == 0):
+            #     raise OptionError('Not enough early game locations')
+            # if(self.options.letter_checks == 0 and self.options.yellow_checks == 0):
+            #     raise OptionError('Not enough early game locations')
+            # if(self.options.green_checks == 0 and self.options.letter_checks == 0):
+            #     raise OptionError('Not enough early game locations')
         
         
             checks_needed = max(4 - self.options.starting_guesses, 0) + max(8 - self.options.starting_letters, 0)
