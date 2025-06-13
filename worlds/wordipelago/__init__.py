@@ -54,7 +54,23 @@ class WordipelagoWorld(World):
         if(self.options.yellow_checks == 1):
             location_count += 31
         
+        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.additional_guesses
+        if not self.options.yellow_unlocked: 
+            item_count += 1
+        if not self.options.unused_letters_unlocked: 
+            item_count += 1
+
+        print('EARLY', 'locs', location_count, 'items', )
         if(self.multiworld.players == 1):
+            
+            if(self.options.green_checks == 0 and self.options.yellow_checks == 0):
+                raise OptionError('Not enough early game locations')
+            if(self.options.letter_checks == 0 and self.options.yellow_checks == 0):
+                raise OptionError('Not enough early game locations')
+            if(self.options.green_checks == 0 and self.options.letter_checks == 0):
+                raise OptionError('Not enough early game locations')
+        
+        
             checks_needed = max(4 - self.options.starting_guesses, 0) + max(8 - self.options.starting_letters, 0)
             if(not self.options.starting_guesses):
                 checks_needed += 1
@@ -283,8 +299,9 @@ class WordipelagoWorld(World):
                     if((i + 1) % word_streak_chunk_size == 0):
                         event_name = str(i + 1) + " Streaks"
                         chunk_region.add_locations({event_name: None})
+            print(loc_count_difference)
             if(region_name == 'Point Shop'):
-                for i in range(self.options.point_shop_checks  + max(0, -loc_count_difference)):
+                for i in range(self.options.point_shop_checks + max(0, -loc_count_difference)):
                     locs = locs + 1
                     name = "Point Shop Purchase " + str(i + 1)
                     print(str(locs) + ': ' + name)
