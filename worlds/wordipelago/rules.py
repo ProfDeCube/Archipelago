@@ -29,7 +29,7 @@ def needed_for_words(state, player, vowels, score, guesses = 1, yellow = False):
     return state.has_from_list_unique(vowels_items, player, vowels) and possible_score >= score and (not yellow or state.has('Yellow Letters', player)) and state.has('Guess', player, guesses)
 
 def needed_for_letter(state, player, letter, vowels, score, guesses = 1, yellow = False):
-    return state.has("Letter " + letter, player) and needed_for_words(state, player, vowels, score, guesses, yellow)
+    return state.has("Letter " + letter, player)
     
 def create_rules(world: "WordipelagoWorld"):
     multiworld = world.multiworld
