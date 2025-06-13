@@ -1,11 +1,11 @@
 from typing import List
 
-from BaseClasses import Region, Tutorial, ItemClassification
+from BaseClasses import LocationProgressType, Region, Tutorial, ItemClassification
 from Options import OptionError
 from worlds.AutoWorld import WebWorld, World
 from .items import WordipelagoItem, item_data_table, item_table
 from .locations import WordipelagoLocation, location_data_table, get_location_table
-from .options import WordipelagoOptions
+from .options import WordipelagoOptions, option_groups
 from .regions import region_data_table
 from .rules import create_rules
 from .logicrules import rule_logic, letter_scores
@@ -23,8 +23,8 @@ class WordipelagoWebWorld(WebWorld):
         link="guide/en",
         authors=["ProfDeCube"]
     )
-
     tutorials = [setup_en]
+    option_groups = option_groups
 
 
 class WordipelagoWorld(World):
@@ -37,9 +37,10 @@ class WordipelagoWorld(World):
     location_name_to_id = get_location_table()
     item_name_to_id = item_table
     starting_items = []
+    
 
     def generate_early(self):
-        location_count = self.options.words_to_win - 1 # Victory Event
+        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.point_shop_checks
         if(self.options.letter_checks >= 1):
             location_count += 6
         if(self.options.letter_checks >= 2):
@@ -53,7 +54,23 @@ class WordipelagoWorld(World):
         if(self.options.yellow_checks == 1):
             location_count += 31
         
+        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.additional_guesses
+        if not self.options.yellow_unlocked: 
+            item_count += 1
+        if not self.options.unused_letters_unlocked: 
+            item_count += 1
+
+        print('EARLY', 'locs', location_count, 'items', )
         if(self.multiworld.players == 1):
+            
+            # if(self.options.green_checks == 0 and self.options.yellow_checks == 0):
+            #     raise OptionError('Not enough early game locations')
+            # if(self.options.letter_checks == 0 and self.options.yellow_checks == 0):
+            #     raise OptionError('Not enough early game locations')
+            # if(self.options.green_checks == 0 and self.options.letter_checks == 0):
+            #     raise OptionError('Not enough early game locations')
+        
+        
             checks_needed = max(4 - self.options.starting_guesses, 0) + max(8 - self.options.starting_letters, 0)
             if(not self.options.starting_guesses):
                 checks_needed += 1
@@ -70,7 +87,9 @@ class WordipelagoWorld(World):
             make slot data, which consists of options, and some other variables.
             """
             wordipelago_options = self.options.as_dict(
-                "words_to_win",
+                "win_condition",
+                "word_checks",
+                "word_streak_checks",
                 "green_checks",
                 "yellow_checks",
                 "letter_checks",
@@ -84,12 +103,14 @@ class WordipelagoWorld(World):
                 "shuffle_typing",
                 "start_inventory_from_pool",
                 "extra_cooldown_trap_size",
-                "clue_item_point_size"
+                "shop_points_item_size",
+                "point_shop_check_price",
+                "word_weighting"
             )
             return {
                 **wordipelago_options,
                 "world_version": "1.0.0",
-                "rule_logic": rule_logic["normal"],
+                "rule_logic": rule_logic[self.options.logic_difficulty.value],
                 "letter_scores" : letter_scores
             }
             
@@ -97,6 +118,7 @@ class WordipelagoWorld(World):
         return WordipelagoItem(name, item_data_table[name].type, item_data_table[name].code, player=self.player)
 
     def create_items(self) -> None:
+        items = 0
         self.starting_items = []
         item_pool: List[WordipelagoItem] = []
         starting_letters: List[str] = []
@@ -156,7 +178,7 @@ class WordipelagoWorld(World):
                         item_pool.append(self.create_item(key))
             
         # Filler Items
-        location_count = self.options.words_to_win - 1 # Victory Event
+        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.point_shop_checks
         if(self.options.letter_checks >= 1):
             location_count += 6
         if(self.options.letter_checks >= 2):
@@ -171,26 +193,30 @@ class WordipelagoWorld(World):
             location_count += 31
 
 
-        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count
+        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count + self.options.additional_guesses
         if not self.options.yellow_unlocked: 
             item_count += 1
         if not self.options.unused_letters_unlocked: 
             item_count += 1
-
+        print("Filler Items", location_count, item_count, location_count - item_count)
+        print("ITEM POOL " + str(len(item_pool)))
+        print("MULTI POOL", self.multiworld.itempool)
         if(location_count > item_count):
             filler_items = location_count - item_count
+            print("FILLER ITEMS = " + str(filler_items))
             percent_modifier = 1
             total_item_percent = (self.options.bad_guess_trap_percent
                 + self.options.random_guess_trap_percent
-                + self.options.clue_item_reward_percent
+                + self.options.shop_points_item_reward_percent
                 + self.options.extra_time_reward_percent
                 + self.options.extra_cooldown_trap_percent)
-            percent_modifier = 100.00 / total_item_percent
+            if(total_item_percent > 0):
+                percent_modifier = 100.00 / total_item_percent
             
             extra_cooldown_trap_count = int((filler_items) * (self.options.extra_cooldown_trap_percent / 100.00) * percent_modifier)
             bad_guess_trap_count = int((filler_items) * (self.options.bad_guess_trap_percent / 100.00) * percent_modifier)
             random_guess_trap_count = int((filler_items) * (self.options.random_guess_trap_percent / 100.00) * percent_modifier)
-            clue_item_reward_count = int((filler_items) * (self.options.clue_item_reward_percent / 100.00) * percent_modifier)
+            shop_points_item_reward_count = int((filler_items) * (self.options.shop_points_item_reward_percent / 100.00) * percent_modifier)
             extra_time_reward_count = int((filler_items) * (self.options.extra_time_reward_percent / 100.00) * percent_modifier)
             
             for i in range(extra_cooldown_trap_count):
@@ -199,17 +225,19 @@ class WordipelagoWorld(World):
                 item_pool.append(WordipelagoItem("Bad Guess Trap", ItemClassification.trap, 197, self.player))  
             for i in range(random_guess_trap_count):
                 item_pool.append(WordipelagoItem("Random Guess Trap", ItemClassification.trap, 198, self.player))  
-            for i in range(clue_item_reward_count):
-                item_pool.append(WordipelagoItem("Clue Points", ItemClassification.filler, 199, self.player))  
+            for i in range(shop_points_item_reward_count):
+                item_pool.append(WordipelagoItem("Shop Points", ItemClassification.filler, 199, self.player))  
             for i in range(extra_time_reward_count):
-                item_pool.append(WordipelagoItem("Time", ItemClassification.filler, 200, self.player))
+                item_pool.append(WordipelagoItem("Cooldown Reduction", ItemClassification.filler, 200, self.player))
             for i in range(location_count - (len(item_pool))):
                 item_pool.append(self.create_filler())
+                
+            print("ITEM POOL = " + str(len(item_pool)))
         self.multiworld.itempool += item_pool
 
     def create_regions(self) -> None:
         # Filler Items
-        location_count = self.options.words_to_win - 1
+        location_count = self.options.word_checks + self.options.word_streak_checks + self.options.point_shop_checks
         if(self.options.letter_checks >= 1):
             location_count += 6
         if(self.options.letter_checks >= 2):
@@ -223,36 +251,86 @@ class WordipelagoWorld(World):
         if(self.options.yellow_checks == 1):
             location_count += 31
 
-        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count
+        item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count + self.options.additional_guesses
         if not self.options.yellow_unlocked: 
             item_count += 1
         if not self.options.unused_letters_unlocked: 
             item_count += 1
 
         loc_count_difference = location_count - item_count
+        
+        print("create regions", location_count, item_count, loc_count_difference)
 
         # Create regions.
         for region_name in region_data_table.keys():
             region = Region(region_name, self.player, self.multiworld)
             self.multiworld.regions.append(region)
 
+        word_chunk_size = self.options.word_checks // 5 + (self.options.word_checks % 5 > 0) 
+        word_streak_chunk_size = self.options.word_streak_checks // 5 + (self.options.word_streak_checks % 5 > 0)
+        locs = 0
         # Create locations.
         for region_name, region_data in region_data_table.items():
             region = self.get_region(region_name)
-            region.add_locations({
-                location_name: location_data.address for location_name, location_data in location_data_table.items()
-                if location_data.region == region_name and location_data.can_create(self)
-            }, WordipelagoLocation)
+            for location_name, location_data in location_data_table.items():
+                if location_data.region == region_name and location_data.can_create(self):
+                    locs = locs + 1
+                    print(str(locs) + ': ' + location_name)
+                    region.add_locations({location_name: location_data.address}, WordipelagoLocation)
             if(region_name == 'Words'):
-                for i in range(self.options.words_to_win + max(0, -loc_count_difference)):
+                for i in range(self.options.word_checks):
+                    locs = locs + 1
+                    chunk_region = self.get_region('Words Chunk ' + str(min(5, i // word_chunk_size + 1)))
                     name = "Word " + str(i + 1)
-                    region.add_locations({name: 1001 + i})
+                    print('Words Chunk ' + str(min(5, i // word_chunk_size + 1)) + '-' + str(locs) + ': ' + name)
+                    chunk_region.add_locations({name: 1001 + i})
+                    if((i + 1) % word_chunk_size == 0):
+                        event_name = str(i + 1) + " Words"
+                        chunk_region.add_locations({event_name: None})
+                    
+            if(region_name == 'Streaks'):
+                for i in range(self.options.word_streak_checks):
+                    locs = locs + 1
+                    chunk_region = self.get_region('Streaks Chunk ' + str(min(5, i // word_streak_chunk_size + 1)))
+                    name = str(i + 1) + " Word Streak"
+                    print(str(locs) + ': ' + name)
+                    chunk_region.add_locations({name: 2001 + i})
+                    
+                    if((i + 1) % word_streak_chunk_size == 0):
+                        event_name = str(i + 1) + " Streaks"
+                        chunk_region.add_locations({event_name: None})
+            print(loc_count_difference)
+            if(region_name == 'Point Shop'):
+                for i in range(self.options.point_shop_checks + max(0, -loc_count_difference)):
+                    locs = locs + 1
+                    name = "Point Shop Purchase " + str(i + 1)
+                    print(str(locs) + ': ' + name)
+                    region.add_locations({name: 3001 + i})
 
+
+    
         # Change the victory location to an event and place the Victory item there.
-        victory_location_name = f"Word {self.options.words_to_win}"
+        victory_location_name = "Goal Event Location"
+        self.get_region('Menu').add_locations({victory_location_name: None})
         self.get_location(victory_location_name).place_locked_item(
-            WordipelagoItem("Word Master", ItemClassification.progression, 1000, self.player)
+            WordipelagoItem("Word Master", ItemClassification.progression, None, self.player)
         )
+        
+        for i in range(1, self.options.word_checks + 1):
+            if(i != 0 and i % word_chunk_size == 0):
+                self.get_location(str(i) + " Words").place_locked_item(
+                    WordipelagoItem(str(i) + " Words", ItemClassification.progression, None, self.player)
+                )
+                
+                self.get_location(str(i) + " Words").access_rule = lambda state: (lambda state, self, i: self.get_location("Word " + str(i)) in state.locations_checked)
+        
+        for i in range(1, self.options.word_streak_checks + 1):
+            if(i != 0 and i % word_streak_chunk_size == 0):
+                self.get_location(str(i) + " Streaks").place_locked_item(
+                    WordipelagoItem(str(i) + " Streaks", ItemClassification.progression, None, self.player)
+                )
+                
+                self.get_location(str(i) + " Streaks").access_rule = lambda state: (lambda state, self, i: self.get_location(str(i) + " Word Streak") in state.locations_checked)
 
     def set_rules(self):
         create_rules(self)
