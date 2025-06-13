@@ -25,19 +25,10 @@ class DarkSouls3Web(WebWorld):
         "English",
         "setup_en.md",
         "setup/en",
-        ["Marech"]
+        ["Natalie", "Marech"]
     )
 
-    setup_fr = Tutorial(
-        setup_en.tutorial_name,
-        setup_en.description,
-        "Français",
-        "setup_fr.md",
-        "setup/fr",
-        ["Marech"]
-    )
-
-    tutorials = [setup_en, setup_fr]
+    tutorials = [setup_en]
     option_groups = option_groups
     item_descriptions = item_descriptions
     rich_text_options_doc = True
@@ -282,9 +273,7 @@ class DarkSouls3World(World):
                     self.player,
                     location,
                     parent = new_region,
-                    event = True,
                 )
-                event_item.code = None
                 new_location.place_locked_item(event_item)
                 if location.name in excluded:
                     excluded.remove(location.name)
@@ -716,7 +705,7 @@ class DarkSouls3World(World):
         if self._is_location_available("US: Young White Branch - by white tree #2"):
             self._add_item_rule(
                 "US: Young White Branch - by white tree #2",
-                lambda item: item.player == self.player and not item.data.unique
+                lambda item: item.player != self.player or not item.data.unique
             )
         
         # Make sure the Storm Ruler is available BEFORE Yhorm the Giant
