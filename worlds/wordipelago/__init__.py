@@ -60,7 +60,6 @@ class WordipelagoWorld(World):
         if not self.options.unused_letters_unlocked: 
             item_count += 1
 
-        print('EARLY', 'locs', location_count, 'items', )
         if(self.multiworld.players == 1):
             
             # if(self.options.green_checks == 0 and self.options.yellow_checks == 0):
@@ -198,12 +197,8 @@ class WordipelagoWorld(World):
             item_count += 1
         if not self.options.unused_letters_unlocked: 
             item_count += 1
-        print("Filler Items", location_count, item_count, location_count - item_count)
-        print("ITEM POOL " + str(len(item_pool)))
-        print("MULTI POOL", self.multiworld.itempool)
         if(location_count > item_count):
             filler_items = location_count - item_count
-            print("FILLER ITEMS = " + str(filler_items))
             percent_modifier = 1
             total_item_percent = (self.options.bad_guess_trap_percent
                 + self.options.random_guess_trap_percent
@@ -232,7 +227,6 @@ class WordipelagoWorld(World):
             for i in range(location_count - (len(item_pool))):
                 item_pool.append(self.create_filler())
                 
-            print("ITEM POOL = " + str(len(item_pool)))
         self.multiworld.itempool += item_pool
 
     def create_regions(self) -> None:
@@ -258,15 +252,13 @@ class WordipelagoWorld(World):
             item_count += 1
 
         loc_count_difference = location_count - item_count
-        
-        print("create regions", location_count, item_count, loc_count_difference)
 
         # Create regions.
         for region_name in region_data_table.keys():
             region = Region(region_name, self.player, self.multiworld)
             self.multiworld.regions.append(region)
 
-        word_chunk_size = self.options.word_checks // 5 + (self.options.word_checks % 5 > 0) 
+        word_chunk_size = self.options.word_checks // 5 + (self.options.word_checks % 5 > 0)
         word_streak_chunk_size = self.options.word_streak_checks // 5 + (self.options.word_streak_checks % 5 > 0)
         locs = 0
         # Create locations.
@@ -275,16 +267,14 @@ class WordipelagoWorld(World):
             for location_name, location_data in location_data_table.items():
                 if location_data.region == region_name and location_data.can_create(self):
                     locs = locs + 1
-                    print(str(locs) + ': ' + location_name)
                     region.add_locations({location_name: location_data.address}, WordipelagoLocation)
             if(region_name == 'Words'):
                 for i in range(self.options.word_checks):
                     locs = locs + 1
                     chunk_region = self.get_region('Words Chunk ' + str(min(5, i // word_chunk_size + 1)))
                     name = "Word " + str(i + 1)
-                    print('Words Chunk ' + str(min(5, i // word_chunk_size + 1)) + '-' + str(locs) + ': ' + name)
                     chunk_region.add_locations({name: 1001 + i})
-                    if((i + 1) % word_chunk_size == 0):
+                    if((i + 1) % word_chunk_size == 0 or i + 1 == self.options.word_checks):
                         event_name = str(i + 1) + " Words"
                         chunk_region.add_locations({event_name: None})
                     
@@ -293,18 +283,16 @@ class WordipelagoWorld(World):
                     locs = locs + 1
                     chunk_region = self.get_region('Streaks Chunk ' + str(min(5, i // word_streak_chunk_size + 1)))
                     name = str(i + 1) + " Word Streak"
-                    print(str(locs) + ': ' + name)
                     chunk_region.add_locations({name: 2001 + i})
                     
-                    if((i + 1) % word_streak_chunk_size == 0):
+                    if((i + 1) % word_streak_chunk_size == 0 or i + 1 == self.options.word_streak_checks):
                         event_name = str(i + 1) + " Streaks"
                         chunk_region.add_locations({event_name: None})
-            print(loc_count_difference)
+                        
             if(region_name == 'Point Shop'):
                 for i in range(self.options.minimum_point_shop_checks + max(0, -loc_count_difference)):
                     locs = locs + 1
                     name = "Point Shop Purchase " + str(i + 1)
-                    print(str(locs) + ': ' + name)
                     region.add_locations({name: 3001 + i})
 
 
@@ -317,15 +305,15 @@ class WordipelagoWorld(World):
         )
         
         for i in range(1, self.options.word_checks + 1):
-            if(i != 0 and i % word_chunk_size == 0):
+            if(i != 0 and i % word_chunk_size == 0 or i == self.options.word_checks):
                 self.get_location(str(i) + " Words").place_locked_item(
                     WordipelagoItem(str(i) + " Words", ItemClassification.progression, None, self.player)
                 )
                 
-                self.get_location(str(i) + " Words").access_rule = lambda state: (lambda state, self, i: self.get_location("Word " + str(i)) in state.locations_checked)
+                self.get_location(str(i) + " Words").access_rule = lambda state: (lambda state, self, i: self.get_location("Word " + str(i), self.player) in state.locations_checked)
         
         for i in range(1, self.options.word_streak_checks + 1):
-            if(i != 0 and i % word_streak_chunk_size == 0):
+            if(i != 0 and i % word_streak_chunk_size == 0 or i == self.options.word_streak_checks):
                 self.get_location(str(i) + " Streaks").place_locked_item(
                     WordipelagoItem(str(i) + " Streaks", ItemClassification.progression, None, self.player)
                 )

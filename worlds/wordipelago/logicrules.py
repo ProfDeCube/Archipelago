@@ -15,7 +15,7 @@ rule_logic = {
       "5": [6, 100, 4, True],
     },
     "letters": [1, 10, 0, False],
-    "pointShop": [1, 1, 1, False],
+    "pointShop": [3, 30, 1, False],
     "streak": [6, 100, 4, True]
   },
   1: {
@@ -34,7 +34,7 @@ rule_logic = {
       "5": [5, 100, 4, True],
     },
     "letters": [1, 10, 0, False],
-    "pointShop": [1, 1, 1, False],
+    "pointShop": [2, 30, 1, False],
     "streak": [5, 100, 4, True]
   },
   2: {
@@ -53,7 +53,7 @@ rule_logic = {
       "5": [4, 100, 4, True],
     },
     "letters": [1, 10, 0, False],
-    "pointShop": [1, 1, 1, False],
+    "pointShop": [1, 30, 1, False],
     "streak": [4, 100, 4, True]
   }
 }

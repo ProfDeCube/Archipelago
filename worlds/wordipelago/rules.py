@@ -8,11 +8,11 @@ if TYPE_CHECKING:
 def end_game_event_check(state, world):
     win_condition = world.options.win_condition.value
     if(win_condition == 0):
-        return state.has('Word ' + str(world.options.word_checks), world.player)
+        return state.has(str(world.options.word_checks) + ' Words', world.player)
     if(win_condition == 1):
-        return state.has(str(world.options.word_streak_checks) + ' Word Streak', world.player)
+        return state.has(str(world.options.word_streak_checks) + ' Streaks', world.player)
     if(win_condition == 2):
-        return state.has('Word ' + str(world.options.word_checks), world.player) and state.has(str(world.options.word_streak_checks) + ' Word Streaks', world.player)
+        return state.has(str(world.options.word_checks) + " Words", world.player) and state.has(str(world.options.word_streak_checks) + ' Streaks', world.player)
 
 def all_needed_locations_checked(state, player):
     return state.has("Word Master", player)
@@ -139,7 +139,8 @@ def create_rules(world: "WordipelagoWorld"):
     for shop_check in range(world.options.minimum_point_shop_checks):
         world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: item.name != 'Shop Points'
 
-    if(world.options.yellow_checks == 1):
+    if(world.options.yellow_checks.value == 1):
+        
         # Deny yellow letters being placed behind yellow positional checks
         world.get_location("----Y").item_rule = lambda item: item.name != 'Yellow Letters'
         world.get_location("---Y-").item_rule = lambda item: item.name != 'Yellow Letters'
@@ -173,8 +174,8 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location("YYYY-").item_rule = lambda item: item.name != 'Yellow Letters'
         world.get_location("YYYYY").item_rule = lambda item: item.name != 'Yellow Letters'
         
-        # Events
-        world.get_location('Goal Event Location').access_rule = lambda state: (lambda state, world: end_game_event_check(state, world))
+    # Events
+    world.get_location('Goal Event Location').access_rule = lambda state: end_game_event_check(state, world)
     
 
     world.multiworld.completion_condition[world.player] = lambda state: all_needed_locations_checked(state, world.player)
