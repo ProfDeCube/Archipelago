@@ -108,7 +108,7 @@ class WordipelagoWorld(World):
             )
             return {
                 **wordipelago_options,
-                "world_version": "1.0.0",
+                "world_version": "experimental",
                 "rule_logic": rule_logic[self.options.logic_difficulty.value],
                 "letter_scores" : letter_scores
             }

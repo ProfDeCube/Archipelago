@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+from BaseClasses import LocationProgressType
 from worlds.generic.Rules import set_rule
 from .logicrules import letter_scores, rule_logic
 
@@ -137,7 +138,10 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location("Used " + key).item_rule = lambda item, key=key: item.name != "Letter " + key
         
     for shop_check in range(world.options.minimum_point_shop_checks):
-        world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: item.name != 'Shop Points'
+        if(shop_check % 2 == 0):
+            world.get_location("Point Shop Purchase " + str(shop_check + 1)).progress_type = LocationProgressType.PRIORITY
+        else:
+            world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: item.name != 'Shop Points'
 
     if(world.options.yellow_checks.value == 1):
         
@@ -175,7 +179,7 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location("YYYYY").item_rule = lambda item: item.name != 'Yellow Letters'
         
     # Events
-    world.get_location('Goal Event Location').access_rule = lambda state: end_game_event_check(state, world)
+    world.get_location('Goal Event Location').access_rule = lambda state, world=world: end_game_event_check(state, world)
     
 
-    world.multiworld.completion_condition[world.player] = lambda state: all_needed_locations_checked(state, world.player)
+    world.multiworld.completion_condition[world.player] = lambda state, world=world: all_needed_locations_checked(state, world.player)
