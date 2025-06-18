@@ -28,7 +28,7 @@ def needed_for_words(state, player, vowels, score, guesses = 1, yellow = False):
 
     return state.has_from_list_unique(vowels_items, player, vowels) and possible_score >= score and (not yellow or state.has('Yellow Letters', player)) and state.has('Guess', player, guesses)
 
-def needed_for_letter(state, player, letter, vowels, score, guesses = 1, yellow = False):
+def needed_for_letter(state, player, letter):
     return state.has("Letter " + letter, player)
     
 def create_rules(world: "WordipelagoWorld"):
@@ -133,8 +133,8 @@ def create_rules(world: "WordipelagoWorld"):
         letter_checks = [*letter_checks, "V", "W", "X", "Z", "Q", "J", "K"]
         
     for key in letter_checks:
-        world.get_location("Used " + key).access_rule = lambda state: needed_for_letter(state, world.player, key, *(rules_for_difficulty["letters"]))
-        world.get_location("Used " + key).item_rule = lambda item: item.name != "Letter " + key
+        world.get_location("Used " + key).access_rule = lambda state, world=world, key=key: needed_for_letter(state, world.player, key)
+        world.get_location("Used " + key).item_rule = lambda item, key=key: item.name != "Letter " + key
         
     for shop_check in range(world.options.minimum_point_shop_checks):
         world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: item.name != 'Shop Points'

@@ -324,4 +324,6 @@ class WordipelagoWorld(World):
         create_rules(self)
 
     def get_filler_item_name(self) -> str:
+        if self.options.shop_points_item_default_filler:
+            return "Shop Points"
         return "Suggestion"
