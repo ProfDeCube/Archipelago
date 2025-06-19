@@ -6,7 +6,6 @@ import zipfile
 from enum import IntEnum
 import os
 import threading
-from io import BytesIO
 
 from typing import ClassVar, Dict, List, Literal, Tuple, Any, Optional, Union, BinaryIO, overload, Sequence
 
@@ -71,18 +70,6 @@ class AutoPatchExtensionRegister(abc.ABCMeta):
 container_version: int = 6
 
 
-def is_ap_player_container(game: str, data: bytes, player: int):
-    if not zipfile.is_zipfile(BytesIO(data)):
-        return False
-    with zipfile.ZipFile(BytesIO(data), mode='r') as zf:
-        if "archipelago.json" in zf.namelist():
-            manifest = json.loads(zf.read("archipelago.json"))
-            if "game" in manifest and "player" in manifest:
-                if game == manifest["game"] and player == manifest["player"]:
-                    return True
-    return False
-
-
 class InvalidDataError(Exception):
     """
     Since games can override `read_contents` in APContainer,
@@ -91,15 +78,24 @@ class InvalidDataError(Exception):
 
 
 class APContainer:
-    """A zipfile containing at least archipelago.json, which contains a manifest json payload."""
-    version: ClassVar[int] = container_version
-    compression_level: ClassVar[int] = 9
-    compression_method: ClassVar[int] = zipfile.ZIP_DEFLATED
+    """A zipfile containing at least archipelago.json"""
+    version: int = container_version
+    compression_level: int = 9
+    compression_method: int = zipfile.ZIP_DEFLATED
+    game: Optional[str] = None
 
+    # instance attributes:
     path: Optional[str]
+    player: Optional[int]
+    player_name: str
+    server: str
 
-    def __init__(self, path: Optional[str] = None):
+    def __init__(self, path: Optional[str] = None, player: Optional[int] = None,
+                 player_name: str = "", server: str = ""):
         self.path = path
+        self.player = player
+        self.player_name = player_name
+        self.server = server
 
     def write(self, file: Optional[Union[str, BinaryIO]] = None) -> None:
         zip_file = file if file else self.path
@@ -139,60 +135,31 @@ class APContainer:
                         message = f"{arg0} - "
                 raise InvalidDataError(f"{message}This might be the incorrect world version for this file") from e
 
-    def read_contents(self, opened_zipfile: zipfile.ZipFile) -> Dict[str, Any]:
+    def read_contents(self, opened_zipfile: zipfile.ZipFile) -> None:
         with opened_zipfile.open("archipelago.json", "r") as f:
             manifest = json.load(f)
         if manifest["compatible_version"] > self.version:
             raise Exception(f"File (version: {manifest['compatible_version']}) too new "
                             f"for this handler (version: {self.version})")
-        return manifest
+        self.player = manifest["player"]
+        self.server = manifest["server"]
+        self.player_name = manifest["player_name"]
 
     def get_manifest(self) -> Dict[str, Any]:
         return {
+            "server": self.server,  # allow immediate connection to server in multiworld. Empty string otherwise
+            "player": self.player,
+            "player_name": self.player_name,
+            "game": self.game,
             # minimum version of patch system expected for patching to be successful
             "compatible_version": 5,
             "version": container_version,
         }
 
 
-class APPlayerContainer(APContainer):
-    """A zipfile containing at least archipelago.json meant for a player"""
-    game: ClassVar[Optional[str]] = None
-    patch_file_ending: str = ""
-
-    player: Optional[int]
-    player_name: str
-    server: str
-
-    def __init__(self, path: Optional[str] = None, player: Optional[int] = None,
-                 player_name: str = "", server: str = ""):
-        super().__init__(path)
-        self.player = player
-        self.player_name = player_name
-        self.server = server
-
-    def read_contents(self, opened_zipfile: zipfile.ZipFile) -> Dict[str, Any]:
-        manifest = super().read_contents(opened_zipfile)
-        self.player = manifest["player"]
-        self.server = manifest["server"]
-        self.player_name = manifest["player_name"]
-        return manifest
-
-    def get_manifest(self) -> Dict[str, Any]:
-        manifest = super().get_manifest()
-        manifest.update({
-            "server": self.server,  # allow immediate connection to server in multiworld. Empty string otherwise
-            "player": self.player,
-            "player_name": self.player_name,
-            "game": self.game,
-            "patch_file_ending": self.patch_file_ending,
-        })
-        return manifest
-
-
-class APPatch(APPlayerContainer):
+class APPatch(APContainer):
     """
-    An `APPlayerContainer` that represents a patch file.
+    An `APContainer` that represents a patch file.
     It includes the `procedure` key in the manifest to indicate that it is a patch.
 
     Your implementation should inherit from this if your output file
@@ -225,6 +192,7 @@ class APProcedurePatch(APAutoPatchInterface):
     """
     hash: Optional[str]  # base checksum of source file
     source_data: bytes
+    patch_file_ending: str = ""
     files: Dict[str, bytes]
 
     @classmethod
@@ -246,6 +214,7 @@ class APProcedurePatch(APAutoPatchInterface):
         manifest = super(APProcedurePatch, self).get_manifest()
         manifest["base_checksum"] = self.hash
         manifest["result_file_ending"] = self.result_file_ending
+        manifest["patch_file_ending"] = self.patch_file_ending
         manifest["procedure"] = self.procedure
         if self.procedure == APDeltaPatch.procedure:
             manifest["compatible_version"] = 5

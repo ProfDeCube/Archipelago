@@ -25,6 +25,7 @@ window.addEventListener('load', () => {
         showdown.setOption('literalMidWordUnderscores', true);
         showdown.setOption('disableForced4SpacesIndentedSublists', true);
         tutorialWrapper.innerHTML += (new showdown.Converter()).makeHtml(results);
+        adjustHeaderWidth();
 
         const title = document.querySelector('h1')
         if (title) {
@@ -48,5 +49,10 @@ window.addEventListener('load', () => {
                 scrollTarget?.scrollIntoView();
             }
         });
+    }).catch((error) => {
+        console.error(error);
+        tutorialWrapper.innerHTML =
+            `<h2>This page is out of logic!</h2>
+            <h3>Click <a href="${window.location.origin}/tutorial">here</a> to return to safety.</h3>`;
     });
 });

@@ -22,9 +22,11 @@ if TYPE_CHECKING:
 
 CVCOTM_CT_US_HASH = "50a1089600603a94e15ecf287f8d5a1f"  # Original GBA cartridge ROM
 CVCOTM_AC_US_HASH = "87a1bd6577b6702f97a60fc55772ad74"  # Castlevania Advance Collection ROM
-# CVCOTM_VC_US_HASH = "2cc38305f62b337281663bad8c901cf9"  # Wii U Virtual Console ROM
+CVCOTM_VC_US_HASH = "2cc38305f62b337281663bad8c901cf9"  # Wii U Virtual Console ROM
 
-# The Wii U VC version is not currently supported. See the Game Page for more info.
+# NOTE: The Wii U VC version is untested as of when this comment was written. I am only including its hash in case it
+# does work. If someone who has it can confirm it does indeed work, this comment should be removed. If it doesn't, the
+# hash should be removed in addition. See the Game Page for more information about supported versions.
 
 ARCHIPELAGO_IDENTIFIER_START = 0x7FFF00
 ARCHIPELAGO_IDENTIFIER = "ARCHIPELAG03"
@@ -516,8 +518,7 @@ class CVCotMPatchExtensions(APPatchExtension):
 
 
 class CVCotMProcedurePatch(APProcedurePatch, APTokenMixin):
-    # hash = [CVCOTM_CT_US_HASH, CVCOTM_AC_US_HASH, CVCOTM_VC_US_HASH]
-    hash = [CVCOTM_CT_US_HASH, CVCOTM_AC_US_HASH]
+    hash = [CVCOTM_CT_US_HASH, CVCOTM_AC_US_HASH, CVCOTM_VC_US_HASH]
     patch_file_ending: str = ".apcvcotm"
     result_file_ending: str = ".gba"
 
@@ -584,8 +585,7 @@ def get_base_rom_bytes(file_name: str = "") -> bytes:
 
         basemd5 = hashlib.md5()
         basemd5.update(base_rom_bytes)
-        # if basemd5.hexdigest() not in [CVCOTM_CT_US_HASH, CVCOTM_AC_US_HASH, CVCOTM_VC_US_HASH]:
-        if basemd5.hexdigest() not in [CVCOTM_CT_US_HASH, CVCOTM_AC_US_HASH]:
+        if basemd5.hexdigest() not in [CVCOTM_CT_US_HASH, CVCOTM_AC_US_HASH, CVCOTM_VC_US_HASH]:
             raise Exception("Supplied Base ROM does not match known MD5s for Castlevania: Circle of the Moon USA."
                             "Get the correct game and version, then dump it.")
         setattr(get_base_rom_bytes, "base_rom_bytes", base_rom_bytes)

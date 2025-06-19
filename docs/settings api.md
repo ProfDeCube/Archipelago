@@ -102,16 +102,17 @@ In worlds, this should only be used for the top level to avoid issues when upgra
 
 ### Bool
 
-Since `bool` can not be subclassed, use the `settings.Bool` helper in a union to get a comment in host.yaml.
+Since `bool` can not be subclassed, use the `settings.Bool` helper in a `typing.Union` to get a comment in host.yaml.
 
 ```python
 import settings
+import typing
 
 class MySettings(settings.Group):
     class MyBool(settings.Bool):
         """Doc string"""
 
-    my_value: MyBool | bool = True
+    my_value: typing.Union[MyBool, bool] = True
 ```
 
 ### UserFilePath
@@ -133,15 +134,15 @@ Checks the file against [md5s](#md5s) by default.
 
 Resolves to an executable (varying file extension based on platform)
 
-#### description: str | None
+#### description: Optional\[str\]
 
 Human-readable name to use in file browser
 
-#### copy_to: str | None
+#### copy_to: Optional\[str\]
 
 Instead of storing the path, copy the file.
 
-#### md5s: list[str | bytes]
+#### md5s: List[Union[str, bytes]]
 
 Provide md5 hashes as hex digests or raw bytes for automatic validation.
 
