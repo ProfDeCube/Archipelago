@@ -1,23 +1,25 @@
 import base64
 import datetime
-import io
-import json
 import os
 import platform
 import shutil
-import subprocess
 import sys
 import sysconfig
-import threading
-import urllib.request
 import warnings
 import zipfile
-from collections.abc import Iterable, Sequence
+import urllib.request
+import io
+import json
+import threading
+import subprocess
+
 from hashlib import sha3_512
 from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple, Union
+
 
 # This is a bit jank. We need cx-Freeze to be able to run anything from this script, so install it
-requirement = 'cx-Freeze==8.0.0'
+requirement = 'cx-Freeze==7.2.0'
 try:
     import pkg_resources
     try:
@@ -58,17 +60,19 @@ from Cython.Build import cythonize
 
 
 # On  Python < 3.10 LogicMixin is not currently supported.
-non_apworlds: set[str] = {
+non_apworlds: Set[str] = {
     "A Link to the Past",
     "Adventure",
     "ArchipIDLE",
     "Archipelago",
     "Clique",
+    "Final Fantasy",
     "Lufia II Ancient Cave",
     "Meritous",
     "Ocarina of Time",
     "Overcooked! 2",
     "Raft",
+    "Slay the Spire",
     "Sudoku",
     "Super Mario 64",
     "VVVVVV",
@@ -144,13 +148,13 @@ def download_SNI() -> None:
         print(f"No SNI found for system spec {platform_name} {machine_name}")
 
 
-signtool: str | None
+signtool: Optional[str]
 if os.path.exists("X:/pw.txt"):
     print("Using signtool")
     with open("X:/pw.txt", encoding="utf-8-sig") as f:
         pw = f.read()
     signtool = r'signtool sign /f X:/_SITS_Zertifikat_.pfx /p "' + pw + \
-               r'" /fd sha256 /td sha256 /tr http://timestamp.digicert.com/ '
+               r'" /fd sha256 /tr http://timestamp.digicert.com/ '
 else:
     signtool = None
 
@@ -202,7 +206,7 @@ def remove_sprites_from_folder(folder: Path) -> None:
             os.remove(folder / file)
 
 
-def _threaded_hash(filepath: str | Path) -> str:
+def _threaded_hash(filepath: Union[str, Path]) -> str:
     hasher = sha3_512()
     hasher.update(open(filepath, "rb").read())
     return base64.b85encode(hasher.digest()).decode()
@@ -252,7 +256,7 @@ class BuildExeCommand(cx_Freeze.command.build_exe.build_exe):
         self.libfolder = Path(self.buildfolder, "lib")
         self.library = Path(self.libfolder, "library.zip")
 
-    def installfile(self, path: Path, subpath: str | Path | None = None, keep_content: bool = False) -> None:
+    def installfile(self, path: Path, subpath: Optional[Union[str, Path]] = None, keep_content: bool = False) -> None:
         folder = self.buildfolder
         if subpath:
             folder /= subpath
@@ -371,7 +375,11 @@ class BuildExeCommand(cx_Freeze.command.build_exe.build_exe):
         from worlds.AutoWorld import AutoWorldRegister
         assert not non_apworlds - set(AutoWorldRegister.world_types), \
             f"Unknown world {non_apworlds - set(AutoWorldRegister.world_types)} designated for .apworld"
-        folders_to_remove: list[str] = []
+        folders_to_remove: List[str] = []
+        disabled_worlds_folder = "worlds_disabled"
+        for entry in os.listdir(disabled_worlds_folder):
+            if os.path.isdir(os.path.join(disabled_worlds_folder, entry)):
+                folders_to_remove.append(entry)
         generate_yaml_templates(self.buildfolder / "Players" / "Templates", False)
         for worldname, worldtype in AutoWorldRegister.world_types.items():
             if worldname not in non_apworlds:
@@ -439,12 +447,12 @@ class AppImageCommand(setuptools.Command):
         ("app-exec=", None, "The application to run inside the image."),
         ("yes", "y", 'Answer "yes" to all questions.'),
     ]
-    build_folder: Path | None
-    dist_file: Path | None
-    app_dir: Path | None
+    build_folder: Optional[Path]
+    dist_file: Optional[Path]
+    app_dir: Optional[Path]
     app_name: str
-    app_exec: Path | None
-    app_icon: Path | None  # source file
+    app_exec: Optional[Path]
+    app_icon: Optional[Path]  # source file
     app_id: str  # lower case name, used for icon and .desktop
     yes: bool
 
@@ -481,12 +489,12 @@ tmp="${{exe#*/}}"
 if [ ! "${{#tmp}}" -lt "${{#exe}}" ]; then
     exe="{default_exe.parent}/$exe"
 fi
-export LD_LIBRARY_PATH="${{LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}}$APPDIR/{default_exe.parent}/lib"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$APPDIR/{default_exe.parent}/lib"
 $APPDIR/$exe "$@"
 """)
         launcher_filename.chmod(0o755)
 
-    def install_icon(self, src: Path, name: str | None = None, symlink: Path | None = None) -> None:
+    def install_icon(self, src: Path, name: Optional[str] = None, symlink: Optional[Path] = None) -> None:
         assert self.app_dir, "Invalid app_dir"
         try:
             from PIL import Image
@@ -549,7 +557,7 @@ $APPDIR/$exe "$@"
         subprocess.call(f'ARCH={build_arch} ./appimagetool -n "{self.app_dir}" "{self.dist_file}"', shell=True)
 
 
-def find_libs(*args: str) -> Sequence[tuple[str, str]]:
+def find_libs(*args: str) -> Sequence[Tuple[str, str]]:
     """Try to find system libraries to be included."""
     if not args:
         return []
@@ -557,7 +565,7 @@ def find_libs(*args: str) -> Sequence[tuple[str, str]]:
     arch = build_arch.replace('_', '-')
     libc = 'libc6'  # we currently don't support musl
 
-    def parse(line: str) -> tuple[tuple[str, str, str], str]:
+    def parse(line: str) -> Tuple[Tuple[str, str, str], str]:
         lib, path = line.strip().split(' => ')
         lib, typ = lib.split(' ', 1)
         for test_arch in ('x86-64', 'i386', 'aarch64'):
@@ -582,8 +590,8 @@ def find_libs(*args: str) -> Sequence[tuple[str, str]]:
             k: v for k, v in (parse(line) for line in data if "=>" in line)
         }
 
-    def find_lib(lib: str, arch: str, libc: str) -> str | None:
-        cache: dict[tuple[str, str, str], str] = getattr(find_libs, "cache")
+    def find_lib(lib: str, arch: str, libc: str) -> Optional[str]:
+        cache: Dict[Tuple[str, str, str], str] = getattr(find_libs, "cache")
         for k, v in cache.items():
             if k == (lib, arch, libc):
                 return v
@@ -592,7 +600,7 @@ def find_libs(*args: str) -> Sequence[tuple[str, str]]:
                 return v
         return None
 
-    res: list[tuple[str, str]] = []
+    res: List[Tuple[str, str]] = []
     for arg in args:
         # try exact match, empty libc, empty arch, empty arch and libc
         file = find_lib(arg, arch, libc)
@@ -621,13 +629,12 @@ cx_Freeze.setup(
     ext_modules=cythonize("_speedups.pyx"),
     options={
         "build_exe": {
-            "packages": ["worlds", "kivy", "cymem", "websockets", "kivymd"],
+            "packages": ["worlds", "kivy", "cymem", "websockets"],
             "includes": [],
             "excludes": ["numpy", "Cython", "PySide2", "PIL",
-                         "pandas"],
-            "zip_includes": [],
+                         "pandas", "zstandard"],
             "zip_include_packages": ["*"],
-            "zip_exclude_packages": ["worlds", "sc2", "kivymd"],
+            "zip_exclude_packages": ["worlds", "sc2"],
             "include_files": [],  # broken in cx 6.14.0, we use more special sauce now
             "include_msvcr": False,
             "replace_paths": ["*."],

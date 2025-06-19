@@ -27,15 +27,9 @@ class MinecraftSettings(settings.Group):
         any games played on the "beta" channel have a high likelihood of no longer working on the "release" channel.
         """
 
-    class JavaExecutable(settings.OptionalUserFilePath):
-        """
-        Path to Java executable. If not set, will attempt to fall back to Java system installation.
-        """
-
-    forge_directory: ForgeDirectory = ForgeDirectory("Minecraft NeoForge server")
+    forge_directory: ForgeDirectory = ForgeDirectory("Minecraft Forge server")
     max_heap_size: str = "2G"
     release_channel: ReleaseChannel = ReleaseChannel("release")
-    java: JavaExecutable = JavaExecutable("")
 
 
 class MinecraftWebWorld(WebWorld):

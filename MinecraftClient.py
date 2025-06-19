@@ -14,7 +14,6 @@ import requests
 
 import Utils
 from Utils import is_windows
-from settings import get_settings
 
 atexit.register(input, "Press enter to exit.")
 
@@ -148,11 +147,9 @@ def find_jdk(version: str) -> str:
         if os.path.isfile(jdk_exe):
             return jdk_exe
     else:
-        jdk_exe = shutil.which(options.java)
+        jdk_exe = shutil.which(options["minecraft_options"].get("java", "java"))
         if not jdk_exe:
-            jdk_exe = shutil.which("java") # try to fall back to system java
-            if not jdk_exe:
-                raise Exception("Could not find Java. Is Java installed on the system?")
+            raise Exception("Could not find Java. Is Java installed on the system?")
         return jdk_exe
 
 
@@ -288,8 +285,8 @@ if __name__ == '__main__':
     # Change to executable's working directory
     os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
 
-    options = get_settings().minecraft_options
-    channel = args.channel or options.release_channel
+    options = Utils.get_options()
+    channel = args.channel or options["minecraft_options"]["release_channel"]
     apmc_data = None
     data_version = args.data_version or None
 
@@ -302,8 +299,8 @@ if __name__ == '__main__':
 
     versions = get_minecraft_versions(data_version, channel)
 
-    forge_dir = options.forge_directory
-    max_heap = options.max_heap_size
+    forge_dir = options["minecraft_options"]["forge_directory"]
+    max_heap = options["minecraft_options"]["max_heap_size"]
     forge_version = args.forge or versions["forge"]
     java_version = args.java or versions["java"]
     mod_url = versions["url"]

@@ -1,12 +1,13 @@
 import re
 import shutil
 from pathlib import Path
+from typing import Dict
 
 
 __all__ = ["copy", "delete"]
 
 
-_new_worlds: dict[str, str] = {}
+_new_worlds: Dict[str, str] = {}
 
 
 def copy(src: str, dst: str) -> None:

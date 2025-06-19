@@ -3,8 +3,7 @@ import typing
 from dataclasses import dataclass
 from typing import Protocol, ClassVar
 
-from Options import Range, NamedRange, Toggle, Choice, OptionSet, PerGameCommonOptions, DeathLink, OptionList, Visibility, Removed, OptionCounter
-from ..items import items_by_group, Group
+from Options import Range, NamedRange, Toggle, Choice, OptionSet, PerGameCommonOptions, DeathLink, OptionList, Visibility
 from ..mods.mod_data import ModNames
 from ..strings.ap_names.ap_option_names import BuffOptionName, WalnutsanityOptionName
 from ..strings.bundle_names import all_cc_bundle_names
@@ -248,14 +247,6 @@ class ToolProgression(Choice):
     option_progressive_cheap = 0b011  # 3
     option_progressive_very_cheap = 0b101  # 5
 
-    @property
-    def is_vanilla(self):
-        return not self.is_progressive
-
-    @property
-    def is_progressive(self):
-        return bool(self.value & self.option_progressive)
-
 
 class ElevatorProgression(Choice):
     """Shuffle the elevator?
@@ -290,7 +281,7 @@ class BuildingProgression(Choice):
     Progressive: You will receive the buildings and will be able to build the first one of each type for free,
         once it is received. If you want more of the same building, it will cost the vanilla price.
     Cheap: Buildings will have a 50% discount
-    Very Cheap: Buildings will have an 80% discount
+    Very Cheap: Buildings will an 80% discount
     """
     internal_name = "building_progression"
     display_name = "Building Progression"
@@ -385,12 +376,6 @@ class QuestLocations(NamedRange):
         "maximum": 56,
     }
 
-    def has_story_quests(self) -> bool:
-        return self.value >= 0
-
-    def has_no_story_quests(self) -> bool:
-        return not self.has_story_quests()
-
 
 class Fishsanity(Choice):
     """Locations for catching each fish the first time?
@@ -436,7 +421,7 @@ class Museumsanity(Choice):
 class Monstersanity(Choice):
     """Locations for slaying monsters?
     None: There are no checks for slaying monsters
-    One per Category: Every category visible at the adventure guild gives one check
+    One per category: Every category visible at the adventure guild gives one check
     One per Monster: Every unique monster gives one check
     Monster Eradication Goals: The Monster Eradication Goals each contain one check
     Short Monster Eradication Goals: The Monster Eradication Goals each contain one check, but are reduced by 60%
@@ -499,7 +484,7 @@ class Cooksanity(Choice):
 class Chefsanity(NamedRange):
     """Locations for learning cooking recipes?
     Vanilla: All cooking recipes are learned normally
-    Queen of Sauce: Every Queen of Sauce episode is a check, all Queen of Sauce recipes are items
+    Queen of Sauce: Every Queen of sauce episode is a check, all queen of sauce recipes are items
     Purchases: Every purchasable recipe is a check
     Friendship: Recipes obtained from friendship are checks
     Skills: Recipes obtained from skills are checks
@@ -590,7 +575,7 @@ class Booksanity(Choice):
 
 
 class Walnutsanity(OptionSet):
-    """Shuffle Walnuts?
+    """Shuffle walnuts?
     Puzzles: Walnuts obtained from solving a special puzzle or winning a minigame
     Bushes: Walnuts that are in a bush and can be collected by clicking it
     Dig Spots: Walnuts that are underground and must be digged up. Includes Journal scrap walnuts
@@ -659,29 +644,13 @@ class ExcludeGingerIsland(Toggle):
     default = 0
 
 
-class TrapItems(Removed):
-    """Deprecated setting, replaced by TrapDifficulty
+class TrapItems(Choice):
+    """When rolling filler items, including resource packs, the game can also roll trap items.
+    Trap items are negative items that cause problems or annoyances for the player
+    This setting is for choosing if traps will be in the item pool, and if so, how punishing they will be.
     """
     internal_name = "trap_items"
     display_name = "Trap Items"
-    default = ""
-    visibility = Visibility.none
-
-    def __init__(self, value: str):
-        if value:
-            raise Exception("Option trap_items was replaced by trap_difficulty, please update your options file")
-        super().__init__(value)
-
-
-class TrapDifficulty(Choice):
-    """When rolling filler items, including resource packs, the game can also roll trap items.
-    Trap items are negative items that cause problems or annoyances for the player.
-    This setting is for choosing how punishing traps will be.
-    Lower difficulties will be on the funny annoyance side, higher difficulty will be on the extreme problems side.
-    Only play Nightmare at your own risk.
-    """
-    internal_name = "trap_difficulty"
-    display_name = "Trap Difficulty"
     default = 2
     option_no_traps = 0
     option_easy = 1
@@ -689,34 +658,6 @@ class TrapDifficulty(Choice):
     option_hard = 3
     option_hell = 4
     option_nightmare = 5
-
-
-trap_default_weight = 100
-
-
-class TrapDistribution(OptionCounter):
-    """
-    Specify the weighted chance of rolling individual traps when rolling random filler items.
-    The average filler item should be considered to be "100", as in 100%.
-    So a trap on "200" will be twice as likely to roll as any filler item. A trap on "10" will be 10% as likely.
-    You can use weight "0" to disable this trap entirely. The maximum weight is 1000, for x10 chance
-    """
-    internal_name = "trap_distribution"
-    display_name = "Trap Distribution"
-    default_weight = trap_default_weight
-    visibility = Visibility.all ^ Visibility.simple_ui
-    min = 0
-    max = 1000
-    valid_keys = frozenset({
-        trap_data.name
-        for trap_data in items_by_group[Group.TRAP]
-        if Group.DEPRECATED not in trap_data.groups
-    })
-    default = {
-        trap_data.name: trap_default_weight
-        for trap_data in items_by_group[Group.TRAP]
-        if Group.DEPRECATED not in trap_data.groups
-    }
 
 
 class MultipleDaySleepEnabled(Toggle):
@@ -896,14 +837,10 @@ class StardewValleyOptions(PerGameCommonOptions):
     debris_multiplier: DebrisMultiplier
     movement_buff_number: NumberOfMovementBuffs
     enabled_filler_buffs: EnabledFillerBuffs
-    trap_difficulty: TrapDifficulty
-    trap_distribution: TrapDistribution
+    trap_items: TrapItems
     multiple_day_sleep_enabled: MultipleDaySleepEnabled
     multiple_day_sleep_cost: MultipleDaySleepCost
     gifting: Gifting
     mods: Mods
     bundle_plando: BundlePlando
     death_link: DeathLink
-
-    # removed:
-    trap_items: TrapItems

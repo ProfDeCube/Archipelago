@@ -28,6 +28,6 @@ def get_seeds():
         response.append({
             "seed_id": seed.id,
             "creation_time": seed.creation_time,
-            "players": get_players(seed),
+            "players": get_players(seed.slots),
         })
     return jsonify(response)
