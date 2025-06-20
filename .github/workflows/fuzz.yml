@@ -1,0 +1,18 @@
+name: Fuzz APWorld
+on:
+  push:
+    branches: '**'
+  pull_request:
+    branches: '**'
+
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Eijebong/ap-actions/fuzz@main
+        with:
+          apworld-path: worlds/wordipelago
+          ap-version: '0.6.1'
+          python-version: '3.12'
+          yamls-per-run: 3
