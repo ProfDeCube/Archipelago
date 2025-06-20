@@ -10,7 +10,6 @@ class TimespinnerLogic:
     flag_unchained_keys: bool
     flag_eye_spy: bool
     flag_specific_keycards: bool
-    flag_prism_break: bool
     pyramid_keys_unlock: Optional[str]
     present_keys_unlock: Optional[str]
     past_keys_unlock: Optional[str]

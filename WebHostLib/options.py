@@ -6,7 +6,7 @@ from typing import Dict, Union
 from docutils.core import publish_parts
 
 import yaml
-from flask import redirect, render_template, request, Response, abort
+from flask import redirect, render_template, request, Response
 
 import Options
 from Utils import local_path
@@ -108,7 +108,7 @@ def option_presets(game: str) -> Response:
                     f"Expected {option.special_range_names.keys()} or {option.range_start}-{option.range_end}."
 
                 presets[preset_name][preset_option_name] = option.value
-            elif isinstance(option, (Options.Range, Options.OptionSet, Options.OptionList, Options.OptionCounter)):
+            elif isinstance(option, (Options.Range, Options.OptionSet, Options.OptionList, Options.ItemDict)):
                 presets[preset_name][preset_option_name] = option.value
             elif isinstance(preset_option, str):
                 # Ensure the option value is valid for Choice and Toggle options
@@ -142,10 +142,7 @@ def weighted_options_old():
 @app.route("/games/<string:game>/weighted-options")
 @cache.cached()
 def weighted_options(game: str):
-    try:
-        return render_options_page("weightedOptions/weightedOptions.html", game, is_complex=True)
-    except KeyError:
-        return abort(404)
+    return render_options_page("weightedOptions/weightedOptions.html", game, is_complex=True)
 
 
 @app.route("/games/<string:game>/generate-weighted-yaml", methods=["POST"])
@@ -200,10 +197,7 @@ def generate_weighted_yaml(game: str):
 @app.route("/games/<string:game>/player-options")
 @cache.cached()
 def player_options(game: str):
-    try:
-        return render_options_page("playerOptions/playerOptions.html", game, is_complex=False)
-    except KeyError:
-        return abort(404)
+    return render_options_page("playerOptions/playerOptions.html", game, is_complex=False)
 
 
 # YAML generator for player-options
@@ -222,7 +216,7 @@ def generate_yaml(game: str):
 
         for key, val in options.copy().items():
             key_parts = key.rsplit("||", 2)
-            # Detect and build OptionCounter options from their name pattern
+            # Detect and build ItemDict options from their name pattern
             if key_parts[-1] == "qty":
                 if key_parts[0] not in options:
                     options[key_parts[0]] = {}

@@ -12,7 +12,6 @@ from CommonClient import CommonContext, server_loop, gui_enabled, \
 import Utils
 from Utils import async_start
 from worlds import network_data_package
-from worlds.oot import OOTWorld
 from worlds.oot.Rom import Rom, compress_rom_file
 from worlds.oot.N64Patch import apply_patch_file
 from worlds.oot.Utils import data_path
@@ -281,7 +280,7 @@ async def n64_sync_task(ctx: OoTContext):
 
 
 async def run_game(romfile):
-    auto_start = OOTWorld.settings.rom_start
+    auto_start = Utils.get_options()["oot_options"].get("rom_start", True)
     if auto_start is True:
         import webbrowser
         webbrowser.open(romfile)
@@ -296,7 +295,7 @@ async def patch_and_run_game(apz5_file):
     decomp_path = base_name + '-decomp.z64'
     comp_path = base_name + '.z64'
     # Load vanilla ROM, patch file, compress ROM
-    rom_file_name = OOTWorld.settings.rom_file
+    rom_file_name = Utils.get_options()["oot_options"]["rom_file"]
     rom = Rom(rom_file_name)
 
     sub_file = None
@@ -347,7 +346,7 @@ if __name__ == '__main__':
 
     import colorama
 
-    colorama.just_fix_windows_console()
+    colorama.init()
 
     asyncio.run(main())
     colorama.deinit()

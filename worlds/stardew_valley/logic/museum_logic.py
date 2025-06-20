@@ -22,7 +22,7 @@ class MuseumLogicMixin(BaseLogicMixin):
         self.museum = MuseumLogic(*args, **kwargs)
 
 
-class MuseumLogic(BaseLogic):
+class MuseumLogic(BaseLogic[Union[ReceivedLogicMixin, HasLogicMixin, TimeLogicMixin, RegionLogicMixin, ActionLogicMixin, ToolLogicMixin, MuseumLogicMixin]]):
 
     def can_donate_museum_items(self, number: int) -> StardewRule:
         return self.logic.region.can_reach(Region.museum) & self.logic.museum.can_find_museum_items(number)

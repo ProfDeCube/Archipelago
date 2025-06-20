@@ -238,10 +238,10 @@ async def proxy_loop(ctx: AHITContext):
         logger.info("Aborting AHIT Proxy Client due to errors")
 
 
-def launch(*launch_args: str):
+def launch():
     async def main():
         parser = get_base_parser()
-        args = parser.parse_args(launch_args)
+        args = parser.parse_args()
 
         ctx = AHITContext(args.connect, args.password)
         logger.info("Starting A Hat in Time proxy server")
@@ -261,6 +261,6 @@ def launch(*launch_args: str):
     # options = Utils.get_options()
 
     import colorama
-    colorama.just_fix_windows_console()
+    colorama.init()
     asyncio.run(main())
     colorama.deinit()

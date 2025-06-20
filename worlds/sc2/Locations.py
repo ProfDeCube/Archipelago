@@ -66,8 +66,11 @@ def get_plando_locations(world: World) -> List[str]:
     if world is None:
         return []
     plando_locations = []
-    for plando_setting in world.options.plando_items:
-        plando_locations += plando_setting.locations
+    for plando_setting in world.multiworld.plando_items[world.player]:
+        plando_locations += plando_setting.get("locations", [])
+        plando_setting_location = plando_setting.get("location", None)
+        if plando_setting_location is not None:
+            plando_locations.append(plando_setting_location)
 
     return plando_locations
 
