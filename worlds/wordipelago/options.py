@@ -38,7 +38,8 @@ class StartingGuesses(Range):
     range_end = 6
     
 class AdditionalGuesses(Range):
-    """How many extra guesses are added to the item pool.\nYou can not exceed 6 guesses in play"""
+    """How many extra guesses are added to the item pool.
+    You can not exceed 6 guesses in play"""
     display_name = "Additional Guesses"
     range_start = 0
     default = 0
