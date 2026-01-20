@@ -79,25 +79,61 @@ class WargrooveContext(CommonContext):
         self.awaiting_bridge = False
         # self.game_communication_path: files go in this path to pass data between us and the actual game
         if "appdata" in os.environ:
-            options = Utils.get_options()
-            root_directory = os.path.join(options["wargroove_options"]["root_directory"])
-            data_directory = os.path.join("lib", "worlds", "wargroove", "data")
-            dev_data_directory = os.path.join("worlds", "wargroove", "data")
-            appdata_wargroove = os.path.expandvars(os.path.join("%APPDATA%", "Chucklefish", "Wargroove"))
-            if not os.path.isfile(os.path.join(root_directory, "win64_bin", "wargroove64.exe")):
-                print_error_and_close("WargrooveClient couldn't find wargroove64.exe. "
-                                      "Unable to infer required game_communication_path")
-            self.game_communication_path = os.path.join(root_directory, "AP")
-            if not os.path.exists(self.game_communication_path):
-                os.makedirs(self.game_communication_path)
-            self.remove_communication_files()
-            atexit.register(self.remove_communication_files)
-            if not os.path.isdir(appdata_wargroove):
-                print_error_and_close("WargrooveClient couldn't find Wargoove in appdata!"
-                                      "Boot Wargroove and then close it to attempt to fix this error")
-            if not os.path.isdir(data_directory):
-                data_directory = dev_data_directory
-            if not os.path.isdir(data_directory):
+            appdata_wargroove = os.environ['appdata']
+        else:
+            try:
+                appdata_wargroove = game_options.save_directory
+            except FileNotFoundError:
+                print_error_and_close("WargrooveClient couldn't detect a path to the AppData folder.\n"
+                                      "Unable to infer required game_communication_path.\n"
+                                      "Try setting the \"save_directory\" value in your local options file "
+                                      "to the AppData folder containing your Wargroove saves.")
+        appdata_wargroove = os.path.expandvars(os.path.join(appdata_wargroove, "Chucklefish", "Wargroove"))
+        if not os.path.isdir(appdata_wargroove):
+            print_error_and_close(f"WargrooveClient couldn't find Wargroove data in your AppData folder.\n"
+                                  f"Looked in \"{appdata_wargroove}\".\n"
+                                  f"If you haven't yet booted the game at least once, boot Wargroove "
+                                  f"and then close it to attempt to fix this error.\n"
+                                  f"If the AppData folder above seems wrong, try setting the "
+                                  f"\"save_directory\" value in your local options file "
+                                  f"to the AppData folder containing your Wargroove saves.")
+
+        # Check for the Wargroove game executable path.
+        # This should always be set regardless of the OS.
+        root_directory = game_options["root_directory"]
+        if not os.path.isfile(os.path.join(root_directory, "win64_bin", "wargroove64.exe")):
+            print_error_and_close(f"WargrooveClient couldn't find wargroove64.exe in "
+                                  f"\"{root_directory}/win64_bin/\".\n"
+                                  f"Unable to infer required game_communication_path.\n"
+                                  f"Please verify the \"root_directory\" value in your local "
+                                  f"options file is set correctly.")
+        self.game_communication_path = os.path.join(root_directory, "AP")
+        if not os.path.exists(self.game_communication_path):
+            os.makedirs(self.game_communication_path)
+        self.remove_communication_files()
+        atexit.register(self.remove_communication_files)
+        if not os.path.isdir(appdata_wargroove):
+            print_error_and_close("WargrooveClient couldn't find Wargoove in appdata! "
+                                  "Boot Wargroove and then close it to attempt to fix this error")
+        mods_directory = os.path.join(appdata_wargroove, "mods", "ArchipelagoMod")
+        save_directory = os.path.join(appdata_wargroove, "save")
+
+        # Wargroove doesn't always create the mods directory, so we have to do it
+        if not os.path.isdir(mods_directory):
+            os.makedirs(mods_directory)
+        resources = ["data/mods/ArchipelagoMod/maps.dat",
+                     "data/mods/ArchipelagoMod/mod.dat",
+                     "data/mods/ArchipelagoMod/modAssets.dat",
+                     "data/save/campaign-c40a6e5b0cdf86ddac03b276691c483d.cmp",
+                     "data/save/campaign-c40a6e5b0cdf86ddac03b276691c483d.cmp.bak"]
+        file_paths = [os.path.join(mods_directory, "maps.dat"),
+                      os.path.join(mods_directory, "mod.dat"),
+                      os.path.join(mods_directory, "modAssets.dat"),
+                      os.path.join(save_directory, "campaign-c40a6e5b0cdf86ddac03b276691c483d.cmp"),
+                      os.path.join(save_directory, "campaign-c40a6e5b0cdf86ddac03b276691c483d.cmp.bak")]
+        for resource, destination in zip(resources, file_paths):
+            file_data = pkgutil.get_data("worlds.wargroove", resource)
+            if file_data is None:
                 print_error_and_close("WargrooveClient couldn't find Wargoove mod and save files in install!")
             shutil.copytree(data_directory, appdata_wargroove, dirs_exist_ok=True)
         else:
@@ -393,30 +429,74 @@ class WargrooveContext(CommonContext):
 async def game_watcher(ctx: WargrooveContext):
     from worlds.wargroove.Locations import location_table
     while not ctx.exit_event.is_set():
-        if ctx.syncing == True:
-            sync_msg = [{'cmd': 'Sync'}]
-            if ctx.locations_checked:
-                sync_msg.append({"cmd": "LocationChecks", "locations": list(ctx.locations_checked)})
-            await ctx.send_msgs(sync_msg)
-            ctx.syncing = False
-        sending = []
-        victory = False
-        for root, dirs, files in os.walk(ctx.game_communication_path):
-            for file in files:
-                if file.find("send") > -1:
-                    st = file.split("send", -1)[1]
-                    sending = sending+[(int(st))]
-                    os.remove(os.path.join(ctx.game_communication_path, file))
-                if file.find("victory") > -1:
-                    victory = True
-                    os.remove(os.path.join(ctx.game_communication_path, file))
-        ctx.locations_checked = sending
-        message = [{"cmd": 'LocationChecks', "locations": sending}]
-        await ctx.send_msgs(message)
-        if not ctx.finished_game and victory:
-            await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
-            ctx.finished_game = True
-        await asyncio.sleep(0.1)
+        try:
+            if ctx.syncing == True:
+                sync_msg = [{'cmd': 'Sync'}]
+                if ctx.locations_checked:
+                    sync_msg.append({"cmd": "LocationChecks", "locations": list(ctx.locations_checked)})
+                await ctx.send_msgs(sync_msg)
+                ctx.syncing = False
+            sending = []
+            victory = False
+            for root, dirs, files in os.walk(ctx.game_communication_path):
+                for file in files:
+                    if file == "deathLinkSend" and ctx.has_death_link:
+                        with open(os.path.join(ctx.game_communication_path, file), 'r') as f:
+                            failed_mission = f.read()
+                            if ctx.slot is not None:
+                                await ctx.send_death(f"{ctx.player_names[ctx.slot]} failed {failed_mission}")
+                        os.remove(os.path.join(ctx.game_communication_path, file))
+                    if file.find("send") > -1:
+                        st = file.split("send", -1)[1]
+                        sending = sending+[(int(st))]
+                        os.remove(os.path.join(ctx.game_communication_path, file))
+                    if file.find("victory") > -1:
+                        victory = True
+                        os.remove(os.path.join(ctx.game_communication_path, file))
+                    if file == "unitSacrifice" or file == "unitSacrificeAI":
+                        if ctx.has_sacrifice_summon:
+                            stored_units_key = ctx.player_stored_units_key
+                            if file == "unitSacrificeAI":
+                                stored_units_key = ctx.ai_stored_units_key
+                            with open(os.path.join(ctx.game_communication_path, file), 'r') as f:
+                                unit_class = f.read()
+                                message = [{"cmd": 'Set', "key": stored_units_key,
+                                            "default": [],
+                                            "want_reply": True,
+                                            "operations": [{"operation": "add", "value": [unit_class[:64]]}]}]
+                                await ctx.send_msgs(message)
+                        os.remove(os.path.join(ctx.game_communication_path, file))
+                    if file == "unitSummonRequestAI" or file == "unitSummonRequest":
+                        if ctx.has_sacrifice_summon:
+                            stored_units_key = ctx.player_stored_units_key
+                            if file == "unitSummonRequestAI":
+                                stored_units_key = ctx.ai_stored_units_key
+                            with open(os.path.join(ctx.game_communication_path, "unitSummonResponse"), 'w') as f:
+                                if stored_units_key in ctx.stored_data:
+                                    stored_units = ctx.stored_data[stored_units_key]
+                                    if stored_units is None:
+                                        stored_units = []
+                                    wg1_stored_units = [unit for unit in stored_units if unit in ctx.unit_classes]
+                                    if len(wg1_stored_units) != 0:
+                                        summoned_unit = random.choice(wg1_stored_units)
+                                        message = [{"cmd": 'Set', "key": stored_units_key,
+                                                    "default": [],
+                                                    "want_reply": True,
+                                                    "operations": [{"operation": "remove", "value": summoned_unit[:64]}]}]
+                                        await ctx.send_msgs(message)
+                                        f.write(summoned_unit)
+                        os.remove(os.path.join(ctx.game_communication_path, file))
+
+            ctx.locations_checked = sending
+            message = [{"cmd": 'LocationChecks', "locations": sending}]
+            await ctx.send_msgs(message)
+            if not ctx.finished_game and victory:
+                await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
+                ctx.finished_game = True
+            await asyncio.sleep(0.1)
+
+        except Exception as err:
+            logger.warn("Exception in communication thread, a check may not have been sent: " + str(err))
 
 
 def print_error_and_close(msg):

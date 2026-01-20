@@ -36,7 +36,28 @@ Config.set("input", "mouse", "mouse,disable_multitouch")
 Config.set("kivy", "exit_on_escape", "0")
 Config.set("graphics", "multisamples", "0")  # multisamples crash old intel drivers
 
-from kivy.app import App
+# Workaround for Kivy issue #9226.
+# caused by kivy by default using probesysfs,
+# which assumes all multi touch deviecs are touch screens. 
+# workaround provided by Snu of the kivy commmunity c:
+from kivy.utils import platform
+if platform == "linux":
+    options = Config.options("input")
+    for option in options:
+        if Config.get("input", option) == "probesysfs":
+            Config.remove_option("input", option)
+
+# Workaround for an issue where importing kivy.core.window before loading sounds
+# will hang the whole application on Linux once the first sound is loaded.
+# kivymd imports kivy.core.window, so we have to do this before the first kivymd import.
+# No longer necessary when we switch to kivy 3.0.0, which fixes this issue.
+from kivy.core.audio import SoundLoader
+for classobj in SoundLoader._classes:
+    # The least invasive way to force a SoundLoader class to load its audio engine seems to be calling
+    # .extensions(), which e.g. in audio_sdl2.pyx then calls a function called "mix_init()"
+    classobj.extensions()
+
+from kivymd.uix.divider import MDDivider
 from kivy.core.window import Window
 from kivy.core.clipboard import Clipboard
 from kivy.core.text.markup import MarkupLabel
@@ -70,6 +91,25 @@ from kivy.animation import Animation
 from kivy.uix.popup import Popup
 from kivy.uix.dropdown import DropDown
 from kivy.uix.image import AsyncImage
+from kivymd.app import MDApp
+from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogSupportingText, MDDialogButtonContainer
+from kivymd.uix.gridlayout import MDGridLayout
+from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.navigationbar import MDNavigationBar, MDNavigationItem
+from kivymd.uix.screen import MDScreen
+from kivymd.uix.screenmanager import MDScreenManager
+
+from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.menu.menu import MDDropdownTextItem
+from kivymd.uix.dropdownitem import MDDropDownItem, MDDropDownItemText
+from kivymd.uix.button import MDButton, MDButtonText, MDButtonIcon, MDIconButton
+from kivymd.uix.label import MDLabel, MDIcon
+from kivymd.uix.recycleview import MDRecycleView
+from kivymd.uix.textfield.textfield import MDTextField
+from kivymd.uix.progressindicator import MDLinearProgressIndicator
+from kivymd.uix.scrollview import MDScrollView
+from kivymd.uix.tooltip import MDTooltip, MDTooltipPlain
 
 fade_in_animation = Animation(opacity=0, duration=0) + Animation(opacity=1, duration=0.25)
 
@@ -84,6 +124,114 @@ else:
     context_type = object
 
 remove_between_brackets = re.compile(r"\[.*?]")
+
+
+class ThemedApp(MDApp):
+    def set_colors(self):
+        text_colors = KivyJSONtoTextParser.TextColors()
+        self.theme_cls.theme_style = text_colors.theme_style
+        self.theme_cls.primary_palette = text_colors.primary_palette
+        self.theme_cls.dynamic_scheme_name = text_colors.dynamic_scheme_name
+        self.theme_cls.dynamic_scheme_contrast = text_colors.dynamic_scheme_contrast
+
+
+class ImageIcon(MDButtonIcon, AsyncImage):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.image = ApAsyncImage(**kwargs)
+        self.add_widget(self.image)
+
+    def add_widget(self, widget, index=0, canvas=None):
+        return super(MDIcon, self).add_widget(widget)
+
+
+class ImageButton(MDIconButton):
+    def __init__(self, **kwargs):
+        image_args = dict()
+        for kwarg in ("fit_mode", "image_size", "color", "source", "texture"):
+            val = kwargs.pop(kwarg, "None")
+            if val != "None":
+                image_args[kwarg.replace("image_", "")] = val
+        super().__init__(**kwargs)
+        self.image = ApAsyncImage(**image_args)
+
+        def set_center(button, center):
+            self.image.center_x = self.center_x
+            self.image.center_y = self.center_y
+
+        self.bind(center=set_center)
+        self.add_widget(self.image)
+
+    def add_widget(self, widget, index=0, canvas=None):
+        return super(MDIcon, self).add_widget(widget)
+
+
+class ScrollBox(MDScrollView):
+    layout: MDBoxLayout = ObjectProperty(None)
+    box_height: int = NumericProperty(dp(100))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+# thanks kivymd
+class ToggleButton(MDButton, ToggleButtonBehavior):
+    def __init__(self, *args, **kwargs):
+        super(ToggleButton, self).__init__(*args, **kwargs)
+        self.bind(state=self._update_bg)
+        self._update_bg(self, self.state)
+
+    def _update_bg(self, _, state: str):
+        if self.disabled:
+            return
+        if self.theme_bg_color == "Primary":
+            self.theme_bg_color = "Custom"
+
+        if state == "down":
+            self.md_bg_color = self.theme_cls.primaryColor
+            for child in self.children:
+                if child.theme_text_color == "Primary":
+                    child.theme_text_color = "Custom"
+                if child.theme_icon_color == "Primary":
+                    child.theme_icon_color = "Custom"
+                child.text_color = self.theme_cls.onPrimaryColor
+                child.icon_color = self.theme_cls.onPrimaryColor
+        else:
+            self.md_bg_color = self.theme_cls.surfaceContainerLowColor
+            for child in self.children:
+                if child.theme_text_color == "Primary":
+                    child.theme_text_color = "Custom"
+                if child.theme_icon_color == "Primary":
+                    child.theme_icon_color = "Custom"
+                child.text_color = self.theme_cls.primaryColor
+                child.icon_color = self.theme_cls.primaryColor
+
+
+# thanks kivymd
+class ResizableTextField(MDTextField):
+    """
+    Resizable MDTextField that manually overrides the builtin sizing.
+    Note that in order to use this, the sizing must be specified from within a .kv rule.
+    """
+    def __init__(self, *args, **kwargs):
+        # cursed rules override
+        rules = Builder.match(self)
+        textfield = next((rule for rule in rules if rule.name == f"<MDTextField>"), None)
+        if textfield:
+            subclasses = rules[rules.index(textfield) + 1:]
+            for subclass in subclasses:
+                height_rule = subclass.properties.get("height", None)
+                if height_rule:
+                    height_rule.ignore_prev = True
+        super().__init__(*args, **kwargs)
+
+
+def on_release(self: MDButton, *args):
+    super(MDButton, self).on_release(args)
+    self.on_leave()
+
+
+MDButton.on_release = on_release
 
 
 # I was surprised to find this didn't already exist in kivy :(
@@ -125,8 +273,8 @@ class HoverBehavior(object):
 Factory.register("HoverBehavior", HoverBehavior)
 
 
-class ToolTip(Label):
-    pass
+class ToolTip(MDTooltipPlain):
+    markup = True
 
 
 class ServerToolTip(ToolTip):
@@ -180,6 +328,8 @@ class TooltipLabel(HovererableLabel):
     def on_mouse_pos(self, window, pos):
         if not self.get_root_window():
             return  # Abort if not displayed
+        if self.disabled:
+            return
         super().on_mouse_pos(window, pos)
         if self.refs and self.hovered:
 
@@ -521,25 +671,103 @@ class CommandPromptTextInput(TextInput):
 
 
 class MessageBox(Popup):
-    class MessageBoxLabel(Label):
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            self._label.refresh()
-            self.size = self._label.texture.size
-            if self.width + 50 > Window.width:
-                self.text_size[0] = Window.width - 50
-                self._label.refresh()
-                self.size = self._label.texture.size
-
     def __init__(self, title, text, error=False, **kwargs):
-        label = MessageBox.MessageBoxLabel(text=text)
+        label = MessageBoxLabel(text=text, padding=("6dp", "0dp"))
         separator_color = [217 / 255, 129 / 255, 122 / 255, 1.] if error else [47 / 255., 167 / 255., 212 / 255, 1.]
         super().__init__(title=title, content=label, size_hint=(None, None), width=max(100, int(label.width) + 40),
                          separator_color=separator_color, **kwargs)
-        self.height += max(0, label.height - 18)
 
 
-class GameManager(App):
+class MDNavigationItemBase(MDNavigationItem):
+    text = StringProperty(None)
+
+
+class ButtonsPrompt(MDDialog):
+    def __init__(self, title: str, text: str, response: typing.Callable[[str], None],
+                 *prompts: str, **kwargs) -> None:
+        """
+        Customizable popup box that lets you create any number of buttons. The text of the pressed button is returned to
+        the callback.
+
+        :param title: The title of the popup.
+        :param text: The message prompt in the popup.
+        :param response: A callable that will get called when the user presses a button. The prompt will not close
+         itself so should be done here if you want to close it when certain buttons are pressed.
+        :param prompts: Any number of strings to be used for the buttons.
+        """
+        layout = MDBoxLayout(orientation="vertical")
+        label = MessageBoxLabel(text=text)
+        layout.add_widget(label)
+
+        def on_release(button: MDButton, *args) -> None:
+            response(button.text)
+
+        buttons = [MDDivider()]
+        for prompt in prompts:
+            button = MDButton(
+                MDButtonText(text=prompt, pos_hint={"center_x": 0.5, "center_y": 0.5}),
+                on_release=on_release,
+                style="text",
+                theme_width="Custom",
+                size_hint_x=1,
+            )
+            button.text = prompt
+            buttons.extend([button, MDDivider()])
+
+        super().__init__(
+            MDDialogHeadlineText(text=title),
+            MDDialogSupportingText(text=text),
+            MDDialogButtonContainer(*buttons, orientation="vertical"),
+            **kwargs,
+        )
+
+
+class MDScreenManagerBase(MDScreenManager):
+    current_tab: MDNavigationItemBase
+    local_screen_names: list[str]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.local_screen_names = []
+
+    def add_widget(self, widget: Widget, *args, **kwargs) -> None:
+        super().add_widget(widget, *args, **kwargs)
+        if "index" in kwargs:
+            self.local_screen_names.insert(kwargs["index"], widget.name)
+        else:
+            self.local_screen_names.append(widget.name)
+
+    def switch_screens(self, new_tab: MDNavigationItemBase) -> None:
+        """
+        Called whenever the user clicks a tab to switch to a different screen.
+
+        :param new_tab: The new screen to switch to's tab.
+        """
+        name = new_tab.text
+        if self.local_screen_names.index(name) > self.local_screen_names.index(self.current_screen.name):
+            self.transition.direction = "left"
+        else:
+            self.transition.direction = "right"
+        self.current = name
+        self.current_tab = new_tab
+
+
+class CommandButton(MDButton, MDTooltip):
+    def __init__(self, *args, manager: "GameManager", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.manager = manager
+        self._tooltip = ToolTip(text="Test")
+
+    def on_enter(self):
+        self._tooltip.text = self.manager.commandprocessor.get_help_text()
+        self._tooltip.font_size = dp(20 - (len(self._tooltip.text) // 400))  # mostly guessing on the numbers here
+        self.display_tooltip()
+
+    def on_leave(self):
+        self.animation_tooltip_dismiss()
+
+
+class GameManager(ThemedApp):
     logging_pairs = [
         ("Client", "Archipelago"),
     ]
@@ -548,6 +776,9 @@ class GameManager(App):
 
     main_area_container: GridLayout
     """ subclasses can add more columns beside the tabs """
+
+    tabs: MDNavigationBar
+    screens: MDScreenManagerBase
 
     def __init__(self, ctx: context_type):
         self.title = self.base_title
@@ -558,15 +789,15 @@ class GameManager(App):
         self.log_panels: typing.Dict[str, Widget] = {}
 
         # keep track of last used command to autofill on click
-        self.last_autofillable_command = "hint"
-        autofillable_commands = ("hint_location", "hint", "getitem")
+        self.last_autofillable_command = "!hint"
+        autofillable_commands = ("!hint_location", "!hint", "!getitem")
         original_say = ctx.on_user_say
 
         def intercept_say(text):
             text = original_say(text)
             if text:
                 for command in autofillable_commands:
-                    if text.startswith("!" + command):
+                    if text.startswith(command):
                         self.last_autofillable_command = command
                         break
             return text
@@ -578,7 +809,7 @@ class GameManager(App):
     @property
     def tab_count(self):
         if hasattr(self, "tabs"):
-            return max(1, len(self.tabs.tab_list))
+            return max(1, len(self.tabs.children))
         return 1
 
     def build(self) -> Layout:
@@ -608,30 +839,33 @@ class GameManager(App):
         self.grid.add_widget(self.progressbar)
 
         # middle part
-        self.tabs = TabbedPanel(size_hint_y=1)
-        self.tabs.default_tab_text = "All"
-        self.log_panels["All"] = self.tabs.default_tab_content = UILog(*(logging.getLogger(logger_name)
-                                                                         for logger_name, name in
-                                                                         self.logging_pairs))
+        self.screens = MDScreenManagerBase(pos_hint={"center_x": 0.5})
+        self.tabs = MDNavigationBar(orientation="horizontal", size_hint_y=None, height=dp(40), set_bars_color=True)
+        # bind the method to the bar for back compatibility
+        self.tabs.remove_tab = self.remove_client_tab
+        self.screens.current_tab = self.add_client_tab(
+            "All" if len(self.logging_pairs) > 1 else "Archipelago",
+            UILog(*(logging.getLogger(logger_name) for logger_name, name in self.logging_pairs)),
+        )
+        self.log_panels["All"] = self.screens.current_tab.content
+        self.screens.current_tab.active = True
 
         for logger_name, display_name in self.logging_pairs:
             bridge_logger = logging.getLogger(logger_name)
             panel = TabbedPanelItem(text=display_name)
             self.log_panels[display_name] = panel.content = UILog(bridge_logger)
             if len(self.logging_pairs) > 1:
-                # show Archipelago tab if other logging is present
-                self.tabs.add_widget(panel)
+                self.add_client_tab(display_name, self.log_panels[display_name])
 
-        hint_panel = self.add_client_tab("Hints", HintLayout())
         self.hint_log = HintLog(self.json_to_kivy_parser)
+        hint_panel = self.add_client_tab("Hints", HintLayout(self.hint_log))
         self.log_panels["Hints"] = hint_panel.content
-        hint_panel.content.add_widget(self.hint_log)
 
-        if len(self.logging_pairs) == 1:
-            self.tabs.default_tab_text = "Archipelago"
-
-        self.main_area_container = GridLayout(size_hint_y=1, rows=1)
-        self.main_area_container.add_widget(self.tabs)
+        self.main_area_container = MDGridLayout(size_hint_y=1, rows=1)
+        tab_container = MDGridLayout(size_hint_y=1, cols=1)
+        tab_container.add_widget(self.tabs)
+        tab_container.add_widget(self.screens)
+        self.main_area_container.add_widget(tab_container)
 
         self.grid.add_widget(self.main_area_container)
 
@@ -659,17 +893,61 @@ class GameManager(App):
 
         return self.container
 
-    def add_client_tab(self, title: str, content: Widget) -> Widget:
-        """Adds a new tab to the client window with a given title, and provides a given Widget as its content.
-         Returns the new tab widget, with the provided content being placed on the tab as content."""
-        new_tab = TabbedPanelItem(text=title)
+    def add_client_tab(self, title: str, content: Widget, index: int = -1) -> MDNavigationItemBase:
+        """
+        Adds a new tab to the client window with a given title, and provides a given Widget as its content.
+        Returns the new tab widget, with the provided content being placed on the tab as content.
+
+        :param title: The title of the tab.
+        :param content: The Widget to be added as content for this tab's new MDScreen. Will also be added to the
+         returned tab as tab.content.
+        :param index: The index to insert the tab at. Defaults to -1, meaning the tab will be appended to the end.
+
+        :return: The new tab.
+        """
+        if self.tabs.children:
+            self.tabs.add_widget(MDDivider(orientation="vertical"))
+        new_tab = MDNavigationItemBase(text=title)
         new_tab.content = content
-        self.tabs.add_widget(new_tab)
+        new_screen = MDScreen(name=title)
+        new_screen.add_widget(content)
+        if -1 < index <= len(self.tabs.children):
+            remapped_index = len(self.tabs.children) - index
+            self.tabs.add_widget(new_tab, index=remapped_index)
+            self.screens.add_widget(new_screen, index=index)
+        else:
+            self.tabs.add_widget(new_tab)
+            self.screens.add_widget(new_screen)
         return new_tab
 
+    def remove_client_tab(self, tab: MDNavigationItemBase) -> None:
+        """
+        Called to remove a tab and its screen.
+
+        :param tab: The tab to remove.
+        """
+        tab_index = self.tabs.children.index(tab)
+        # if the tab is currently active we need to swap before removing it
+        if tab == self.screens.current_tab:
+            if not tab_index:
+                # account for the divider
+                swap_index = tab_index + 2
+            else:
+                swap_index = tab_index - 2
+            self.tabs.children[swap_index].on_release()
+            # self.screens.switch_screens(self.tabs.children[swap_index])
+        # get the divider to the left if we can
+        if not tab_index:
+            divider_index = tab_index + 1
+        else:
+            divider_index = tab_index - 1
+        self.tabs.remove_widget(self.tabs.children[divider_index])
+        self.tabs.remove_widget(tab)
+        self.screens.remove_widget(self.screens.get_screen(tab.text))
+
     def update_texts(self, dt):
-        if hasattr(self.tabs.content.children[0], "fix_heights"):
-            self.tabs.content.children[0].fix_heights()  # TODO: remove this when Kivy fixes this upstream
+        if hasattr(self.screens.current_tab.content, "fix_heights"):
+            getattr(self.screens.current_tab.content, "fix_heights")()
         if self.ctx.server:
             self.title = self.base_title + " " + Utils.__version__ + \
                          f" | Connected to: {self.ctx.server_address} " \
@@ -753,10 +1031,6 @@ class GameManager(App):
     def update_hints(self):
         hints = self.ctx.stored_data.get(f"_read_hints_{self.ctx.team}_{self.ctx.slot}", [])
         self.hint_log.refresh_hints(hints)
-
-    # default F1 keybind, opens a settings menu, that seems to break the layout engine once closed
-    def open_settings(self, *largs):
-        pass
 
 
 class LogtoUI(logging.Handler):

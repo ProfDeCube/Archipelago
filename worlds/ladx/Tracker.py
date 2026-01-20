@@ -154,19 +154,24 @@ class MagpieBridge:
     async def handler(self, websocket):
         self.ws = websocket
         while True:
-            message = json.loads(await websocket.recv())
-            if message["type"] == "handshake":
-                logger.info(
-                    f"Connected, supported features: {message['features']}")
-                self.features = message["features"]
+            try:
+                message = json.loads(await websocket.recv())
+                if message["type"] == "handshake":
+                    logger.info(
+                        f"Connected, supported features: {message['features']}")
+                    self.features = message["features"]
 
-            if message["type"] in ("handshake", "sendFull"):
-                if "items" in self.features:
-                    await self.send_all_inventory()
-                if "checks" in self.features:
-                    await self.send_all_checks()
-                if "slot_data" in self.features:
-                    await self.send_slot_data(self.slot_data)
+                    await self.send_handshAck()
+
+                if message["type"] == "sendFull":
+                    if "items" in self.features:
+                        await self.send_all_inventory()
+                    if "checks" in self.features:
+                        await self.send_all_checks()
+                    if self.use_entrance_tracker():
+                        await self.send_gps(diff=False)
+            except websockets.exceptions.ConnectionClosedOK:
+                pass
 
     # Translate renamed IDs back to LADXR IDs
     @staticmethod

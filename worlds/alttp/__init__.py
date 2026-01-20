@@ -216,6 +216,8 @@ class ALTTPWorld(World):
     required_client_version = (0, 4, 1)
     web = ALTTPWeb()
 
+    shops: list[Shop]
+
     pedestal_credit_texts: typing.Dict[int, str] = \
         {data.item_code: data.pedestal_credit for data in item_table.values() if data.pedestal_credit}
     sickkid_credit_texts: typing.Dict[int, str] = \
@@ -262,6 +264,10 @@ class ALTTPWorld(World):
     clock_mode: str = ""
     treasure_hunt_required: int = 0
     treasure_hunt_total: int = 0
+    light_world_light_cone: bool = False
+    dark_world_light_cone: bool = False
+    save_and_quit_from_boss: bool = True
+    rupoor_cost: int = 10
 
     def __init__(self, *args, **kwargs):
         self.dungeon_local_item_names = set()
@@ -278,6 +284,9 @@ class ALTTPWorld(World):
         self.fix_trock_exit = None
         self.required_medallions = ["Ether", "Quake"]
         self.escape_assist = []
+        self.shops = []
+        self.logical_heart_containers = 10
+        self.logical_heart_pieces = 24
         super(ALTTPWorld, self).__init__(*args, **kwargs)
 
     @classmethod
@@ -368,7 +377,9 @@ class ALTTPWorld(World):
                 else:
                     self.options.local_items.value |= self.dungeon_local_item_names
 
-        self.difficulty_requirements = difficulties[multiworld.item_pool[player].current_key]
+        self.difficulty_requirements = difficulties[self.options.item_pool.current_key]
+        self.logical_heart_pieces = self.difficulty_requirements.heart_piece_limit
+        self.logical_heart_containers = self.difficulty_requirements.boss_heart_container_limit
 
         # enforce pre-defined local items.
         if multiworld.goal[player] in ["local_triforce_hunt", "local_ganon_triforce_hunt"]:
@@ -496,20 +507,21 @@ class ALTTPWorld(World):
     def pre_fill(self):
         from Fill import fill_restrictive, FillError
         attempts = 5
-        world = self.multiworld
-        player = self.player
-        all_state = world.get_all_state(use_cache=True)
+        all_state = self.multiworld.get_all_state(perform_sweep=False)
         crystals = [self.create_item(name) for name in ['Red Pendant', 'Blue Pendant', 'Green Pendant', 'Crystal 1', 'Crystal 2', 'Crystal 3', 'Crystal 4', 'Crystal 7', 'Crystal 5', 'Crystal 6']]
-        crystal_locations = [world.get_location('Turtle Rock - Prize', player),
-                             world.get_location('Eastern Palace - Prize', player),
-                             world.get_location('Desert Palace - Prize', player),
-                             world.get_location('Tower of Hera - Prize', player),
-                             world.get_location('Palace of Darkness - Prize', player),
-                             world.get_location('Thieves\' Town - Prize', player),
-                             world.get_location('Skull Woods - Prize', player),
-                             world.get_location('Swamp Palace - Prize', player),
-                             world.get_location('Ice Palace - Prize', player),
-                             world.get_location('Misery Mire - Prize', player)]
+        for crystal in crystals:
+            all_state.remove(crystal)
+        all_state.sweep_for_advancements()
+        crystal_locations = [self.get_location('Turtle Rock - Prize'),
+                             self.get_location('Eastern Palace - Prize'),
+                             self.get_location('Desert Palace - Prize'),
+                             self.get_location('Tower of Hera - Prize'),
+                             self.get_location('Palace of Darkness - Prize'),
+                             self.get_location('Thieves\' Town - Prize'),
+                             self.get_location('Skull Woods - Prize'),
+                             self.get_location('Swamp Palace - Prize'),
+                             self.get_location('Ice Palace - Prize'),
+                             self.get_location('Misery Mire - Prize')]
         placed_prizes = {loc.item.name for loc in crystal_locations if loc.item}
         unplaced_prizes = [crystal for crystal in crystals if crystal.name not in placed_prizes]
         empty_crystal_locations = [loc for loc in crystal_locations if not loc.item]
@@ -790,7 +802,7 @@ class ALTTPWorld(World):
 
             return shop_data
 
-        if shop_info := [build_shop_info(shop) for shop in self.multiworld.shops if shop.custom]:
+        if shop_info := [build_shop_info(shop) for shop in self.shops if shop.custom]:
             spoiler_handle.write('\n\nShops:\n\n')
         for shop_data in shop_info:
             spoiler_handle.write("{} [{}]\n    {}\n".format(shop_data['location'], shop_data['type'], "\n    ".join(

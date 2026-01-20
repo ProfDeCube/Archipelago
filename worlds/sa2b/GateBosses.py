@@ -1,5 +1,6 @@
 import typing
 from BaseClasses import MultiWorld
+from Options import OptionError
 from worlds.AutoWorld import World
 
 speed_characters_1 = "Sonic vs Shadow 1"
@@ -65,15 +66,45 @@ def get_gate_bosses(multiworld: MultiWorld, world: World):
     selected_bosses: typing.List[int] = []
     boss_gates: typing.List[int] = []
     available_bosses: typing.List[str] = list(gate_bosses_no_requirements_table.keys())
-    multiworld.random.shuffle(available_bosses)
-    halfway = False
+    world.random.shuffle(available_bosses)
+
+    gate_boss_plando: typing.Union[int, str] = world.options.gate_boss_plando.value
+    plando_bosses = ["None", "None", "None", "None", "None"]
+    if isinstance(gate_boss_plando, str):
+        # boss plando
+        options = gate_boss_plando.split(";")
+        gate_boss_plando = GateBossPlando.options[options.pop()]
+        for option in options:
+            if "-" in option:
+                loc, boss = option.split("-")
+                boss_num = LocationName.boss_gate_names[loc]
+
+                if boss_num >= world.options.number_of_level_gates.value:
+                    # Don't reject bosses plando'd into gate bosses that won't exist
+                    pass
+
+                if boss in plando_bosses:
+                    raise OptionError(f"Invalid input for option `plando_bosses`: "
+                                      f"No Duplicate Bosses permitted ({boss}) - for "
+                                      f"{world.player_name}")
+
+                plando_bosses[boss_num] = boss
+
+                if boss in available_bosses:
+                    available_bosses.remove(boss)
 
     for x in range(world.options.number_of_level_gates):
-        if (not halfway) and ((x + 1) / world.options.number_of_level_gates) > 0.5:
-            available_bosses.extend(gate_bosses_with_requirements_table)
-            multiworld.random.shuffle(available_bosses)
-            halfway = True
-        selected_bosses.append(all_gate_bosses_table[available_bosses[0]])
+        if (10 not in selected_bosses) and (king_boom_boo not in available_bosses) and ((x + 1) / world.options.number_of_level_gates) > 0.5:
+            available_bosses.extend(gate_bosses_with_requirements_table.keys())
+            world.random.shuffle(available_bosses)
+
+        chosen_boss = available_bosses[0]
+        if plando_bosses[x] != "None":
+            if plando_bosses[x] not in available_bosses:
+                available_bosses.append(plando_bosses[x])
+            chosen_boss = plando_bosses[x]
+
+        selected_bosses.append(all_gate_bosses_table[chosen_boss])
         boss_gates.append(x + 1)
         available_bosses.remove(available_bosses[0])
 

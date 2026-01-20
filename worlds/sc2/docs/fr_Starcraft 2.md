@@ -100,10 +100,6 @@ supplémentaires données au début des missions, la capacité de contrôler les
 * `/disable_mission_check` Désactive les requit pour lancer les missions.
 Cette option a pour but de permettre de jouer en mode coopératif en permettant à un joueur de jouer à la prochaine 
 mission de la chaîne qu'un autre joueur est en train d'entamer.
-* `/play [mission_id]` Lance la mission correspondant à l'identifiant donné.
-* `/available` Affiche les missions qui sont présentement accessibles.
-* `/unfinished` Affiche les missions qui sont présentement accessibles et dont certains des objectifs permettant 
-l'accès à un *item* n'ont pas été accomplis.
 * `/set_path [path]` Permet de définir manuellement où *StarCraft 2* est installé ce qui est pertinent seulement si la 
 détection automatique de cette dernière échoue.
 
@@ -123,3 +119,7 @@ normalement à l'aise.
 Pour redémarrer une mission, utilisez le client de *StarCraft 2 Archipelago*.
 - Un rapport d'erreur est souvent généré lorsqu'une mission est fermée. 
 Cela n'affecte pas le jeu et peut être ignoré.
+- Actuellement, le client de *StarCraft 2* utilise la *location* associée à la victoire d'une mission pour déterminer 
+si celle-ci a été complétée.
+En conséquence, la fonctionnalité *collect* d'*Archipelago* peut rendre accessible des missions connectées à une 
+mission que vous n'avez pas terminée.

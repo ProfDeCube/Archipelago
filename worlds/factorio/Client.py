@@ -56,9 +56,26 @@ class FactorioCommandProcessor(ClientCommandProcessor):
         """Toggle filtering of item sends that get displayed in-game to only those that involve you."""
         self.ctx.toggle_filter_item_sends()
 
+    def _cmd_toggle_connection_change_filter(self):
+        """Toggle filtering of Connected/Disconnected players."""
+        self.ctx.toggle_filter_connection_changes()
+
     def _cmd_toggle_chat(self):
         """Toggle sending of chat messages from players on the Factorio server to Archipelago."""
         self.ctx.toggle_bridge_chat_out()
+        
+    def _cmd_rcon_reconnect(self) -> bool:
+        """Reconnect the RCON client if its disconnected."""
+        try:
+            result = self.ctx.rcon_client.send_command("/help")
+            if result:
+                self.output("RCON Client already connected.")
+            return True
+        except factorio_rcon.RCONNetworkError:
+            self.ctx.rcon_client = factorio_rcon.RCONClient("localhost", self.ctx.rcon_port, self.ctx.rcon_password, timeout=5)
+            self.output("RCON Client successfully reconnected.")
+            return True
+        return False
 
 
 class FactorioContext(CommonContext):
@@ -69,7 +86,9 @@ class FactorioContext(CommonContext):
     # updated by spinup server
     mod_version: Utils.Version = Utils.Version(0, 0, 0)
 
-    def __init__(self, server_address, password, filter_item_sends: bool, bridge_chat_out: bool):
+    def __init__(self, server_address, password, filter_connection_changes: bool, filter_item_sends: bool, bridge_chat_out: bool,
+                 rcon_port: int, rcon_password: str, server_settings_path: str | None,
+                 factorio_server_args: tuple[str, ...]):
         super(FactorioContext, self).__init__(server_address, password)
         self.send_index: int = 0
         self.rcon_client = None
@@ -79,6 +98,7 @@ class FactorioContext(CommonContext):
         self.factorio_json_text_parser = FactorioJSONtoTextParser(self)
         self.energy_link_increment = 0
         self.last_deplete = 0
+        self.filter_connection_changes: bool = filter_connection_changes
         self.filter_item_sends: bool = filter_item_sends
         self.multiplayer: bool = False  # whether multiple different players have connected
         self.bridge_chat_out: bool = bridge_chat_out
@@ -111,6 +131,7 @@ class FactorioContext(CommonContext):
     def on_print_json(self, args: dict):
         if self.rcon_client:
             if (not self.filter_item_sends or not self.is_uninteresting_item_send(args)) \
+                    and (not self.filter_connection_changes or not self.is_connection_change(args)) \
                     and not self.is_echoed_chat(args):
                 text = self.factorio_json_text_parser(copy.deepcopy(args["data"]))
                 if not text.startswith(
@@ -191,6 +212,15 @@ class FactorioContext(CommonContext):
         logger.info(announcement)
         self.print_to_game(announcement)
 
+    def toggle_filter_connection_changes(self) -> None:
+        self.filter_connection_changes = not self.filter_connection_changes
+        if self.filter_connection_changes:
+            announcement = "Connection changes are now filtered."
+        else:
+            announcement = "Connection changes are no longer filtered."
+        logger.info(announcement)
+        self.print_to_game(announcement)
+
     def toggle_bridge_chat_out(self) -> None:
         self.bridge_chat_out = not self.bridge_chat_out
         if self.bridge_chat_out:
@@ -224,7 +254,13 @@ async def game_watcher(ctx: FactorioContext):
             if ctx.rcon_client and time.perf_counter() > next_bridge:
                 next_bridge = time.perf_counter() + 1
                 ctx.awaiting_bridge = False
-                data = json.loads(ctx.rcon_client.send_command("/ap-sync"))
+                try:
+                    data = json.loads(ctx.rcon_client.send_command("/ap-sync"))
+                except factorio_rcon.RCONNotConnected:
+                    continue
+                except factorio_rcon.RCONNetworkError:
+                    bridge_logger.warning("RCON Client has unexpectedly lost connection. Please issue /rcon_reconnect.")
+                    continue
                 if not ctx.auth:
                     pass  # auth failed, wait for new attempt
                 elif data["slot_name"] != ctx.auth:
@@ -275,9 +311,13 @@ async def game_watcher(ctx: FactorioContext):
                                     "cmd": "Set", "key": ctx.energylink_key, "operations":
                                         [{"operation": "add", "value": value}]
                                 }]))
-                                ctx.rcon_client.send_command(
-                                    f"/ap-energylink -{value}")
-                                logger.debug(f"EnergyLink: Sent {Utils.format_SI_prefix(value)}J")
+                                try:
+                                    ctx.rcon_client.send_command(
+                                        f"/ap-energylink -{value}")
+                                except factorio_rcon.RCONNetworkError:
+                                    bridge_logger.warning("RCON Client has unexpectedly lost connection. Please issue /rcon_reconnect.")
+                                else:
+                                    logger.debug(f"EnergyLink: Sent {format_SI_prefix(value)}J")
 
             await asyncio.sleep(0.1)
 
@@ -346,6 +386,9 @@ async def factorio_server_watcher(ctx: FactorioContext):
                 elif re.match(r"^[0-9.]+ Script @[^ ]+\.lua:\d+: Player command toggle-ap-send-filter$", msg):
                     factorio_server_logger.debug(msg)
                     ctx.toggle_filter_item_sends()
+                elif re.match(r"^[0-9.]+ Script @[^ ]+\.lua:\d+: Player command toggle-ap-connection-change-filter$", msg):
+                    factorio_server_logger.debug(msg)
+                    ctx.toggle_filter_connection_changes()
                 elif re.match(r"^[0-9.]+ Script @[^ ]+\.lua:\d+: Player command toggle-ap-chat$", msg):
                     factorio_server_logger.debug(msg)
                     ctx.toggle_bridge_chat_out()
@@ -529,17 +572,33 @@ server_args = ("--rcon-port", rcon_port, "--rcon-password", rcon_password)
 
 def launch():
     import colorama
-    global executable, server_settings, server_args
-    colorama.init()
+    global executable
+    colorama.just_fix_windows_console()
+
+    # args handling
+    parser = get_base_parser(description="Optional arguments to Factorio Client follow. "
+                                         "Remaining arguments get passed into bound Factorio instance. "
+                                         "Refer to Factorio --help for those.")
+    parser.add_argument('--rcon-port', default='24242', type=int, help='Port to use to communicate with Factorio')
+    parser.add_argument('--rcon-password', help='Password to authenticate with RCON.')
+    parser.add_argument('--server-settings', help='Factorio server settings configuration file.')
+
+    args, rest = parser.parse_known_args(args=new_args)
+    rcon_port = args.rcon_port
+    rcon_password = args.rcon_password if args.rcon_password else ''.join(
+        random.choice(string.ascii_letters) for _ in range(32))
+
+    server_settings = args.server_settings if args.server_settings \
+        else getattr(settings, "server_settings", None)
 
     if server_settings:
         server_settings = os.path.abspath(server_settings)
-    if not isinstance(options["factorio_options"]["filter_item_sends"], bool):
-        logging.warning(f"Warning: Option filter_item_sends should be a bool.")
-    initial_filter_item_sends = bool(options["factorio_options"]["filter_item_sends"])
-    if not isinstance(options["factorio_options"]["bridge_chat_out"], bool):
-        logging.warning(f"Warning: Option bridge_chat_out should be a bool.")
-    initial_bridge_chat_out = bool(options["factorio_options"]["bridge_chat_out"])
+        if not os.path.isfile(server_settings):
+            raise FileNotFoundError(f"Could not find file {server_settings} for server_settings. Aborting.")
+
+    initial_filter_item_sends = bool(settings.filter_item_sends)
+    initial_filter_connection_changes = bool(settings.filter_connection_changes)
+    initial_bridge_chat_out = bool(settings.bridge_chat_out)
 
     if not os.path.exists(os.path.dirname(executable)):
         raise FileNotFoundError(f"Path {os.path.dirname(executable)} does not exist or could not be accessed.")
@@ -551,14 +610,9 @@ def launch():
         else:
             raise FileNotFoundError(f"Path {executable} is not an executable file.")
 
-    if server_settings and os.path.isfile(server_settings):
-        server_args = (
-            "--rcon-port", rcon_port,
-            "--rcon-password", rcon_password,
-            "--server-settings", server_settings,
-            *rest)
-    else:
-        server_args = ("--rcon-port", rcon_port, "--rcon-password", rcon_password, *rest)
-
-    asyncio.run(main(args, initial_filter_item_sends, initial_bridge_chat_out))
+    asyncio.run(main(lambda: FactorioContext(
+        args.connect, args.password,
+        initial_filter_connection_changes, initial_filter_item_sends, initial_bridge_chat_out,
+        rcon_port, rcon_password, server_settings, rest
+    )))
     colorama.deinit()

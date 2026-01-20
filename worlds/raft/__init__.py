@@ -66,33 +66,37 @@ class RaftWorld(World):
                     for i in range(minimumResourcePackAmount, maximumResourcePackAmount + 1):
                         extraItemNamePool.append(createResourcePackName(i, packItem))
 
-            if self.options.filler_item_types != self.options.filler_item_types.option_resource_packs: # Use duplicate items
-                dupeItemPool = item_table.copy()
-                # Remove frequencies if necessary
-                if self.options.island_frequency_locations != self.options.island_frequency_locations.option_anywhere: # Not completely random locations
-                    # If we let frequencies stay in with progressive-frequencies, the progressive-frequency item
-                    # will be included 7 times. This is a massive flood of progressive-frequency items, so we
-                    # instead add progressive-frequency as its own item a smaller amount of times to prevent
-                    # flooding the duplicate item pool with them.
-                    if self.options.island_frequency_locations == self.options.island_frequency_locations.option_progressive:
-                        for _ in range(2):
-                            # Progressives are not in item_pool, need to create faux item for duplicate item pool
-                            # This can still be filtered out later by duplicate_items setting
-                            dupeItemPool.append({ "name": "progressive-frequency", "progression": True }) # Progressive frequencies need to be included
-                    # Always remove non-progressive Frequency items
-                    dupeItemPool = (itm for itm in dupeItemPool if "Frequency" not in itm["name"])
-                
-                # Remove progression or non-progression items if necessary
-                if (self.options.duplicate_items == self.options.duplicate_items.option_progression): # Progression only
-                    dupeItemPool = (itm for itm in dupeItemPool if itm["progression"] == True)
-                elif (self.options.duplicate_items == self.options.duplicate_items.option_non_progression): # Non-progression only
-                    dupeItemPool = (itm for itm in dupeItemPool if itm["progression"] == False)
-                
-                dupeItemPool = list(dupeItemPool)
-                # Finally, add items as necessary
-                if len(dupeItemPool) > 0:
-                    for item in dupeItemPool:
-                        extraItemNamePool.append(item["name"])
+        if (self.options.filler_item_types != self.options.filler_item_types.option_duplicates): # Use resource packs
+            for packItem in resourcePackItems:
+                for i in range(minimumResourcePackAmount, maximumResourcePackAmount + 1):
+                    self.extraItemNamePool.append(createResourcePackName(i, packItem))
+
+        if self.options.filler_item_types != self.options.filler_item_types.option_resource_packs: # Use duplicate items
+            dupeItemPool = item_table.copy()
+            # Remove frequencies if necessary
+            if self.options.island_frequency_locations != self.options.island_frequency_locations.option_anywhere: # Not completely random locations
+                # If we let frequencies stay in with progressive-frequencies, the progressive-frequency item
+                # will be included 7 times. This is a massive flood of progressive-frequency items, so we
+                # instead add progressive-frequency as its own item a smaller amount of times to prevent
+                # flooding the duplicate item pool with them.
+                if self.options.island_frequency_locations == self.options.island_frequency_locations.option_progressive:
+                    for _ in range(2):
+                        # Progressives are not in item_pool, need to create faux item for duplicate item pool
+                        # This can still be filtered out later by duplicate_items setting
+                        dupeItemPool.append({ "name": "progressive-frequency", "progression": True }) # Progressive frequencies need to be included
+                # Always remove non-progressive Frequency items
+                dupeItemPool = (itm for itm in dupeItemPool if "Frequency" not in itm["name"])
+
+            # Remove progression or non-progression items if necessary
+            if (self.options.duplicate_items == self.options.duplicate_items.option_progression): # Progression only
+                dupeItemPool = (itm for itm in dupeItemPool if itm["progression"] == True)
+            elif (self.options.duplicate_items == self.options.duplicate_items.option_non_progression): # Non-progression only
+                dupeItemPool = (itm for itm in dupeItemPool if itm["progression"] == False)
+
+            dupeItemPool = list(dupeItemPool)
+            # Finally, add items as necessary
+            for item in dupeItemPool:
+                self.extraItemNamePool.append(self.replace_item_name_as_necessary(item["name"]))
             
             if (len(extraItemNamePool) > 0):
                 for randomItem in self.random.choices(extraItemNamePool, k=extras):
