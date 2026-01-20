@@ -1,4 +1,4 @@
-name: Release APWorld
+name: Release wordipelago APWorld
 on:
   push:
     tags:

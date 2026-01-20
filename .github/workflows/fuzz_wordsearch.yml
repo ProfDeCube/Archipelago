@@ -1,4 +1,4 @@
-name: Fuzz APWorld
+name: Fuzz wordsearch APWorld
 on:
   push:
     branches: '*wordsearch*'

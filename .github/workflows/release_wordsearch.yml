@@ -1,12 +1,12 @@
-name: Release APWorld
+name: Release wordsearch APWorld
 on:
   push:
     tags:
-      - '**'
+      - '*wordsearch*'
 jobs:
   release:
     uses: Eijebong/ap-actions/.github/workflows/release-apworld.yml@main
     with:
-      apworld-path: worlds/wordipelago
+      apworld-path: worlds/wordsearch
       ap-version: '0.6.6'
       python-version: '3.12'
