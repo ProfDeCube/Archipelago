@@ -97,7 +97,7 @@ class PointShopLogicLevel(Choice):
     three: Matches 3x green letter logic, default level, reasonable level of point generation.
     four: Matches 4x green letter logic.
     five: Matches 5x green letter logic, point generation expected to be much higher."""
-    display_name = "Logic Difficulty"
+    display_name = "Point Shop Logic Level"
     option_one = 1
     option_two = 2
     option_three = 3
