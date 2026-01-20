@@ -13,6 +13,6 @@ jobs:
       - uses: Eijebong/ap-actions/fuzz@main
         with:
           apworld-path: worlds/wordipelago
-          ap-version: '0.6.1'
+          ap-version: '0.6.6'
           python-version: '3.12'
           yamls-per-run: 3
