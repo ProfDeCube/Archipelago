@@ -108,7 +108,7 @@ class PointShopLogicLevel(Choice):
 class WordWeighting(Range): 
     """How likely new words fit with the letters you have unlocked."""
     display_name = "Word Weighting"
-    range_start = 0
+    range_start = 1
     default = 3
     range_end = 10
     
