@@ -15,7 +15,7 @@ MAX_COOKING_TASKS = 6
 MAX_FIREMAKING_TASKS = 3
 MAX_WOODCUTTING_TASKS = 3
 
-NON_QUEST_LOCATION_COUNT = 22
+NON_QUEST_LOCATION_COUNT = 49
 
 
 class StartingArea(Choice):
@@ -58,6 +58,31 @@ class ProgressiveTasks(Toggle):
     """
     display_name = "Progressive Tasks"
 
+
+class EnableDuds(Toggle):
+    """
+    Whether to include filler "Dud" items that serve no purpose but allow for more tasks in the pool.
+    """
+    display_name = "Enable Duds"
+
+
+class DudCount(Range):
+    """
+    How many "Dud" items to include in the pool. This setting is ignored if "Enable Duds" is not included
+    """
+    display_name = "Dud Item Count"
+    range_start = 0
+    range_end = 30
+    default = 10
+
+
+class EnableCarePacks(Toggle):
+    """
+    Whether or not to include useful "Care Pack" items that allow you to trade over specific items.
+    Note: Requires your account NOT to be an Ironman. Also, requires access to another account to trade over the items,
+    or gold to purchase off of the grand exchange.
+    """
+    display_name = "Enable Care Packs"
 
 class MaxCombatLevel(Range):
     """
@@ -473,6 +498,9 @@ class OSRSOptions(PerGameCommonOptions):
     starting_area: StartingArea
     brutal_grinds: BrutalGrinds
     progressive_tasks: ProgressiveTasks
+    enable_duds: EnableDuds
+    dud_count: DudCount
+    enable_carepacks: EnableCarePacks
     max_combat_level: MaxCombatLevel
     max_combat_tasks: MaxCombatTasks
     combat_task_weight: CombatTaskWeight

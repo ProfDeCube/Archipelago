@@ -9,7 +9,7 @@ from threading import Event, Thread
 from typing import Any
 from uuid import UUID
 
-from pony.orm import db_session, select, commit
+from pony.orm import db_session, select, commit, PrimaryKey
 
 from Utils import restricted_loads
 from .locker import Locker, AlreadyRunningException
@@ -78,6 +78,10 @@ def launch_generator(pool: multiprocessing.pool.Pool, generation: Generation, ti
 
 
 def init_generator(config: dict[str, Any]) -> None:
+    from setproctitle import setproctitle
+
+    setproctitle("Generator (idle)")
+
     try:
         import resource
     except ModuleNotFoundError:

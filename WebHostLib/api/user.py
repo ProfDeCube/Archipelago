@@ -29,6 +29,6 @@ def get_seeds():
         response.append({
             "seed_id": to_url(seed.id),
             "creation_time": seed.creation_time,
-            "players": get_players(seed.slots),
+            "players": get_players(seed),
         })
     return jsonify(response)

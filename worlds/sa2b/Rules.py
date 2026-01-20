@@ -614,7 +614,9 @@ def set_mission_upgrade_rules_standard(multiworld: MultiWorld, world: World, pla
         add_rule(multiworld.get_location(LocationName.death_chamber_hidden_2, player),
                  lambda state: state.has(ItemName.knuckles_hammer_gloves, player))
         add_rule(multiworld.get_location(LocationName.crazy_gadget_hidden_1, player),
-                 lambda state: state.has(ItemName.sonic_light_shoes, player))
+                 lambda state: state.has(ItemName.sonic_bounce_bracelet, player))
+        add_rule(multiworld.get_location(LocationName.lost_colony_hidden_1, player),
+                 lambda state: state.has(ItemName.eggman_jet_engine, player))
         add_rule(multiworld.get_location(LocationName.white_jungle_hidden_3, player),
                  lambda state: state.has(ItemName.shadow_air_shoes, player))
         add_rule(multiworld.get_location(LocationName.cannon_core_hidden_1, player),
@@ -817,11 +819,9 @@ def set_mission_upgrade_rules_standard(multiworld: MultiWorld, world: World, pla
         add_rule(multiworld.get_location(LocationName.white_jungle_beetle, player),
                  lambda state: state.has(ItemName.shadow_air_shoes, player))
         add_rule(multiworld.get_location(LocationName.mad_space_beetle, player),
-                 lambda state: state.has(ItemName.rouge_mystic_melody, player) and
-                               state.has(ItemName.rouge_iron_boots, player))
+                 lambda state: state.has(ItemName.rouge_iron_boots, player))
         add_rule(multiworld.get_location(LocationName.cosmic_wall_beetle, player),
-                 lambda state: state.has(ItemName.eggman_mystic_melody, player) and
-                               state.has(ItemName.eggman_jet_engine, player))
+                 lambda state: state.has(ItemName.eggman_jet_engine, player))
 
         add_rule(multiworld.get_location(LocationName.cannon_core_beetle, player),
                  lambda state: state.has(ItemName.tails_booster, player) and
@@ -1316,6 +1316,7 @@ def set_mission_upgrade_rules_standard(multiworld: MultiWorld, world: World, pla
         add_rule(multiworld.get_location(LocationName.pyramid_cave_animal_19, player),
                  lambda state: state.has(ItemName.sonic_light_shoes, player) and
                                state.has(ItemName.sonic_bounce_bracelet, player) and
+                               state.has(ItemName.sonic_flame_ring, player) and
                                state.has(ItemName.sonic_mystic_melody, player))
 
         add_rule(multiworld.get_location(LocationName.cannon_core_animal_19, player),
@@ -2260,7 +2261,7 @@ def set_mission_upgrade_rules_hard(multiworld: MultiWorld, world: World, player:
     add_rule_safe(multiworld, LocationName.weapons_bed_5, player,
                  lambda state: state.has(ItemName.eggman_jet_engine, player))
     add_rule_safe(multiworld, LocationName.security_hall_5, player,
-                  lambda state: state.has(ItemName.rouge_treasure_scope, player))
+                  lambda state: state.has(ItemName.rouge_pick_nails, player))
     add_rule_safe(multiworld, LocationName.cosmic_wall_5, player,
                   lambda state: state.has(ItemName.eggman_jet_engine, player))
 
@@ -2303,8 +2304,6 @@ def set_mission_upgrade_rules_hard(multiworld: MultiWorld, world: World, player:
     if world.options.keysanity:
         add_rule(multiworld.get_location(LocationName.prison_lane_chao_1, player),
                  lambda state: state.has(ItemName.tails_bazooka, player))
-        add_rule(multiworld.get_location(LocationName.mission_street_chao_1, player),
-                 lambda state: state.has(ItemName.tails_booster, player))
         add_rule(multiworld.get_location(LocationName.hidden_base_chao_1, player),
                  lambda state: state.has(ItemName.tails_booster, player))
         add_rule(multiworld.get_location(LocationName.death_chamber_chao_1, player),
@@ -2321,8 +2320,6 @@ def set_mission_upgrade_rules_hard(multiworld: MultiWorld, world: World, player:
                                state.has(ItemName.eggman_large_cannon, player))
 
         add_rule(multiworld.get_location(LocationName.prison_lane_chao_2, player),
-                 lambda state: state.has(ItemName.tails_booster, player))
-        add_rule(multiworld.get_location(LocationName.mission_street_chao_2, player),
                  lambda state: state.has(ItemName.tails_booster, player))
         add_rule(multiworld.get_location(LocationName.hidden_base_chao_2, player),
                  lambda state: state.has(ItemName.tails_booster, player))
@@ -2474,10 +2471,6 @@ def set_mission_upgrade_rules_hard(multiworld: MultiWorld, world: World, player:
         add_rule(multiworld.get_location(LocationName.eternal_engine_omo_2, player),
                  lambda state: state.has(ItemName.tails_booster, player))
 
-        add_rule(multiworld.get_location(LocationName.weapons_bed_omo_2, player),
-                 lambda state: state.has(ItemName.eggman_jet_engine, player) or
-                               state.has(ItemName.eggman_large_cannon, player))
-
         add_rule(multiworld.get_location(LocationName.hidden_base_omo_3, player),
                  lambda state: state.has(ItemName.tails_booster, player))
         add_rule(multiworld.get_location(LocationName.eternal_engine_omo_3, player),
@@ -2602,8 +2595,7 @@ def set_mission_upgrade_rules_hard(multiworld: MultiWorld, world: World, player:
         add_rule(multiworld.get_location(LocationName.lost_colony_beetle, player),
                  lambda state: state.has(ItemName.eggman_jet_engine, player))
         add_rule(multiworld.get_location(LocationName.cosmic_wall_beetle, player),
-                 lambda state: state.has(ItemName.eggman_mystic_melody, player) and
-                               state.has(ItemName.eggman_jet_engine, player))
+                 lambda state: state.has(ItemName.eggman_jet_engine, player))
 
         add_rule(multiworld.get_location(LocationName.cannon_core_beetle, player),
                  lambda state: state.has(ItemName.tails_booster, player) and
@@ -2932,8 +2924,7 @@ def set_mission_upgrade_rules_hard(multiworld: MultiWorld, world: World, player:
                                state.has(ItemName.knuckles_hammer_gloves, player))
 
         add_rule(multiworld.get_location(LocationName.pyramid_cave_animal_19, player),
-                 lambda state: state.has(ItemName.sonic_bounce_bracelet, player) and
-                               state.has(ItemName.sonic_mystic_melody, player))
+                 lambda state: state.has(ItemName.sonic_flame_ring, player))
 
         add_rule(multiworld.get_location(LocationName.cannon_core_animal_19, player),
                  lambda state: state.has(ItemName.tails_booster, player) and
@@ -4286,6 +4277,8 @@ def set_rules(multiworld: MultiWorld, world: World, player: int, gate_bosses: ty
             set_mission_upgrade_rules_standard(multiworld, world, player)
         elif world.options.logic_difficulty.value == 1:
             set_mission_upgrade_rules_hard(multiworld, world, player)
+        elif world.options.logic_difficulty.value == 2:
+            set_mission_upgrade_rules_expert(multiworld, world, player)
 
         for i in range(world.options.black_market_slots.value):
             add_rule(multiworld.get_location(LocationName.chao_black_market_base + str(i + 1), player),

@@ -47,32 +47,21 @@ def create_er_regions(world: "TunicWorld") -> dict[Portal, Portal]:
         regions.update({region.name: region for region in breakable_regions})
 
     if world.options.entrance_rando:
-        for region_name, region_data in world.er_regions.items():
-            # if fewer shops is off, zig skip is not made
-            if region_name == "Zig Skip Exit":
-                # need to check if there's a seed group for this first
-                if world.options.entrance_rando.value not in EntranceRando.options.values():
-                    if not world.seed_groups[world.options.entrance_rando.value]["fixed_shop"]:
-                        continue
-                elif not world.options.fixed_shop:
-                    continue
-            regions[region_name] = Region(region_name, world.player, world.multiworld)
-
         portal_pairs = pair_portals(world, regions)
 
         # output the entrances to the spoiler log here for convenience
-        sorted_portal_pairs = sort_portals(portal_pairs)
-        for portal1, portal2 in sorted_portal_pairs.items():
-            world.multiworld.spoiler.set_entrance(portal1, portal2, "both", world.player)
-    else:
-        for region_name, region_data in world.er_regions.items():
-            # filter out regions that are inaccessible in non-er
-            if region_name not in ["Zig Skip Exit", "Purgatory"]:
-                regions[region_name] = Region(region_name, world.player, world.multiworld)
+        sorted_portal_pairs = sort_portals(portal_pairs, world)
+        if not world.options.decoupled:
+            for portal1, portal2 in sorted_portal_pairs.items():
+                world.multiworld.spoiler.set_entrance(portal1, portal2, "both", world.player)
+        else:
+            for portal1, portal2 in sorted_portal_pairs.items():
+                world.multiworld.spoiler.set_entrance(portal1, portal2, "entrance", world.player)
 
+    else:
         portal_pairs = vanilla_portals(world, regions)
 
-    create_randomized_entrances(portal_pairs, regions)
+    create_randomized_entrances(world, portal_pairs, regions)
 
     set_er_region_rules(world, regions, portal_pairs)
 
@@ -81,8 +70,8 @@ def create_er_regions(world: "TunicWorld") -> dict[Portal, Portal]:
         location = TunicERLocation(world.player, location_name, location_id, region)
         region.locations.append(location)
 
-    for region in regions.values():
-        world.multiworld.regions.append(region)
+    if world.options.breakable_shuffle:
+        set_breakable_location_rules(world)
 
     place_event_items(world, regions)
 
@@ -136,6 +125,20 @@ def place_event_items(world: "TunicWorld", regions: dict[str, Region]) -> None:
         region.locations.append(location)
 
 
+# keeping track of which shop numbers have been used already to avoid duplicates
+# due to plando, shops can be added out of order, so a set is the best way to make this work smoothly
+def get_shop_num(world: "TunicWorld") -> int:
+    portal_num = -1
+    for i in range(500):
+        if i + 1 not in world.used_shop_numbers:
+            portal_num = i + 1
+            world.used_shop_numbers.add(portal_num)
+            break
+    if portal_num == -1:
+        raise Exception(f"TUNIC: {world.player_name} has plando'd too many shops.")
+    return portal_num
+
+
 # all shops are the same shop. however, you cannot get to all shops from the same shop entrance.
 # so, we need a bunch of shop regions that connect to the actual shop, but the actual shop cannot connect back
 def create_shop_region(world: "TunicWorld", regions: dict[str, Region], portal_num) -> None:
@@ -144,7 +147,6 @@ def create_shop_region(world: "TunicWorld", regions: dict[str, Region], portal_n
     new_shop_region = Region(new_shop_name, world.player, world.multiworld)
     new_shop_region.connect(regions["Shop"])
     regions[new_shop_name] = new_shop_region
-    world.shop_num += 1
 
 
 # for non-ER that uses the ER rules, we create a vanilla set of portal pairs
@@ -161,9 +163,10 @@ def vanilla_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Por
         portal2_sdt = portal1.destination_scene()
 
         if portal2_sdt.startswith("Shop,"):
-            portal2 = Portal(name=f"Shop Portal {world.shop_num}", region=f"Shop {world.shop_num}",
-                             destination="Previous Region", tag="_")
-            create_shop_region(world, regions)
+            portal_num = get_shop_num(world)
+            portal2 = Portal(name=f"Shop Portal {portal_num}", region=f"Shop {portal_num}",
+                             destination=str(portal_num), tag="_", direction=Direction.none)
+            create_shop_region(world, regions, portal_num)
 
         for portal in portal_map:
             if portal.scene_destination() == portal2_sdt:
@@ -194,7 +197,7 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
     laurels_zips = world.options.laurels_zips.value
     ice_grappling = world.options.ice_grappling.value
     ladder_storage = world.options.ladder_storage.value
-    fixed_shop = world.options.fixed_shop
+    entrance_layout = world.options.entrance_layout
     laurels_location = world.options.laurels_location
     decoupled = world.options.decoupled
     shuffle_fuses = bool(world.options.shuffle_fuses.value)
@@ -209,7 +212,7 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
         laurels_zips = seed_group["laurels_zips"]
         ice_grappling = seed_group["ice_grappling"]
         ladder_storage = seed_group["ladder_storage"]
-        fixed_shop = seed_group["fixed_shop"]
+        entrance_layout = seed_group["entrance_layout"]
         laurels_location = "10_fairies" if seed_group["laurels_at_10_fairies"] is True else False
         shuffle_bells = seed_group["bell_shuffle"]
         shuffle_fuses = seed_group["fuse_shuffle"]
@@ -238,18 +241,23 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
         dead_end_status = world.er_regions[portal.region].dead_end
         if dead_end_status == DeadEnd.free:
             two_plus.append(portal)
+            two_plus_direction_tracker[portal.direction] += 1
         elif dead_end_status == DeadEnd.all_cats:
             dead_ends.append(portal)
+            dead_end_direction_tracker[portal.direction] += 1
         elif dead_end_status == DeadEnd.restricted:
             if ice_grappling:
                 two_plus.append(portal)
+                two_plus_direction_tracker[portal.direction] += 1
             else:
                 dead_ends.append(portal)
+                dead_end_direction_tracker[portal.direction] += 1
         # these two get special handling
         elif dead_end_status == DeadEnd.special:
             if portal.region == "Secret Gathering Place":
                 if laurels_location == "10_fairies":
                     two_plus.append(portal)
+                    two_plus_direction_tracker[portal.direction] += 1
                 else:
                     dead_ends.append(portal)
                     dead_end_direction_tracker[portal.direction] += 1
@@ -267,10 +275,27 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
         # if fixed shop is off, remove this portal
         for portal in portal_map:
             if portal.region == "Zig Skip Exit":
-                if fixed_shop:
-                    two_plus.append(portal)
-                else:
-                    dead_ends.append(portal)
+                portal_map.remove(portal)
+                break
+        # need 8 shops with direction pairs or there won't be a valid set of pairs
+        if entrance_layout == EntranceLayout.option_direction_pairs:
+            shop_count = 8
+
+    # for universal tracker, we want to skip shop gen since it's essentially full plando
+    if world.using_ut:
+        shop_count = 0
+
+    for _ in range(shop_count):
+        # 6 of the shops have south exits, 2 of them have west exits
+        portal_num = get_shop_num(world)
+        shop_dir = Direction.south
+        if portal_num > 6:
+            shop_dir = Direction.west
+        shop_portal = Portal(name=f"Shop Portal {portal_num}", region=f"Shop {portal_num}",
+                             destination=str(portal_num), tag="_", direction=shop_dir)
+        create_shop_region(world, regions, portal_num)
+        dead_ends.append(shop_portal)
+        dead_end_direction_tracker[shop_portal.direction] += 1
 
     connected_regions: set[str] = set()
     # make better start region stuff when/if implementing random start
@@ -300,22 +325,44 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
                     portal_name2 = portal.name
                     # connected_regions.update(add_dependent_regions(portal.region, logic_rules))
             # shops have special handling
-            if not portal_name2 and portal2 == "Shop, Previous Region_":
-                portal_name2 = "Shop Portal"
-            plando_connections.append(PlandoConnection(portal_name1, portal_name2, "both"))
+            if not portal_name1 and portal1.startswith("Shop"):
+                # it should show up as "Shop, 1_" for shop 1
+                portal_name1 = "Shop Portal " + str(portal1).split(", ")[1].split("_")[0]
+            if not portal_name2 and portal2.startswith("Shop"):
+                portal_name2 = "Shop Portal " + str(portal2).split(", ")[1].split("_")[0]
+            if world.options.decoupled:
+                plando_connections.append(PlandoConnection(portal_name1, portal_name2, "entrance"))
+            else:
+                plando_connections.append(PlandoConnection(portal_name1, portal_name2, "both"))
 
+    # put together the list of non-deadend regions
     non_dead_end_regions = set()
     for region_name, region_info in world.er_regions.items():
-        if not region_info.dead_end:
+        # these are not real regions, they are just here to be descriptive
+        if region_info.is_fake_region or region_name == "Shop":
+            continue
+        # dead ends aren't real in decoupled
+        if decoupled:
+            non_dead_end_regions.add(region_name)
+        elif not region_info.dead_end:
             non_dead_end_regions.add(region_name)
         # if ice grappling to places is in logic, both places stop being dead ends
         elif region_info.dead_end == DeadEnd.restricted and ice_grappling:
             non_dead_end_regions.add(region_name)
-        # secret gathering place and zig skip get weird, special handling
+        # secret gathering place is treated as a non-dead end if 10 fairies is on to assure non-laurels access to it
         elif region_info.dead_end == DeadEnd.special:
-            if (region_name == "Secret Gathering Place" and laurels_location == "10_fairies") \
-                    or (region_name == "Zig Skip Exit" and fixed_shop):
+            if region_name == "Secret Gathering Place" and laurels_location == "10_fairies":
                 non_dead_end_regions.add(region_name)
+
+    if decoupled:
+        # add the dead ends to the two plus list, since dead ends aren't real in decoupled
+        two_plus.extend(dead_ends)
+        dead_ends.clear()
+        # if decoupled is on, we make a second two_plus list, where the first is entrances and the second is exits
+        two_plus2 = two_plus.copy()
+    else:
+        # if decoupled is off, the two lists are the same list, since entrances and exits are intertwined
+        two_plus2 = two_plus
 
     if plando_connections:
         if decoupled:
@@ -337,7 +384,9 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
             p_entrance = connection.entrance
             p_exit = connection.exit
             # if you plando secret gathering place, need to know that during portal pairing
-            if "Secret Gathering Place Exit" in [p_entrance, p_exit]:
+            if p_exit == "Secret Gathering Place Exit":
+                waterfall_plando = True
+            if p_entrance == "Secret Gathering Place Exit" and not decoupled:
                 waterfall_plando = True
             portal1_dead_end = True
             portal2_dead_end = True
@@ -345,14 +394,17 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
             portal1 = None
             portal2 = None
 
-            # search two_plus for both at once
+            # search the two_plus lists (or list) for the portals
             for portal in two_plus:
                 if p_entrance == portal.name:
                     portal1 = portal
                     portal1_dead_end = False
+                    break
+            for portal in two_plus2:
                 if p_exit == portal.name:
                     portal2 = portal
                     portal2_dead_end = False
+                    break
 
             # search dead_ends individually since we can't really remove items from two_plus during the loop
             if portal1:
@@ -463,17 +515,22 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
                         raise Exception(f"{player_name} paired a dead end to a dead end in their "
                                         "plando connections.")
 
-                for portal in dead_ends:
-                    if p_entrance == portal.name:
-                        portal1 = portal
-                        break
-                if not portal1:
-                    raise Exception(f"Could not find entrance named {p_entrance} for "
-                                    f"plando connections in {player_name}'s YAML.")
-                dead_ends.remove(portal1)
+                if (portal1.region == "Secret Gathering Place" and (portal2_dead_end or portal2.region == "Zig Skip Exit")
+                        or portal2.region == "Secret Gathering Place" and (portal1_dead_end or portal1.region == "Zig Skip Exit")):
+                    # need to make sure you didn't pair this to a dead end or zig skip
+                    if portal1_dead_end or portal2_dead_end or \
+                            portal1.region == "Zig Skip Exit" or portal2.region == "Zig Skip Exit":
+                        if world.options.entrance_rando.value not in EntranceRando.options.values():
+                            raise Exception(f"Tunic ER seed group {world.options.entrance_rando.value} paired a dead "
+                                            "end to a dead end in their plando connections.")
+                        else:
+                            raise Exception(f"{player_name} paired a dead end to a dead end in their "
+                                            "plando connections.")
+            # okay now that we're done with all of that nonsense, we can finally make the portal pair
+            portal_pairs[portal1] = portal2
 
-            if portal2:
-                two_plus.remove(portal2)
+            if portal1_dead_end:
+                dead_end_direction_tracker[portal1.direction] -= 1
             else:
                 two_plus_direction_tracker[portal1.direction] -= 1
 
@@ -486,30 +543,55 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
         connected_regions = update_reachable_regions(connected_regions, traversal_reqs, has_laurels, logic_tricks,
                                                      shuffle_fuses, shuffle_bells)
 
-    if fixed_shop and not world.using_ut:
-        portal1 = None
+    # if there are an odd number of shops after plando, add another one, except in decoupled where it doesn't matter
+    if not decoupled and len(world.used_shop_numbers) % 2 == 1:
+        if entrance_layout == EntranceLayout.option_direction_pairs:
+            raise Exception(f"TUNIC: {world.player_name} plando'd too many shops for the Direction Pairs option.")
+        portal_num = get_shop_num(world)
+        shop_portal = Portal(name=f"Shop Portal {portal_num}", region=f"Shop {portal_num}",
+                             destination=str(portal_num), tag="_", direction=Direction.none)
+        create_shop_region(world, regions, portal_num)
+        dead_ends.append(shop_portal)
+
+    if entrance_layout == EntranceLayout.option_fixed_shop and not world.using_ut:
+        windmill = None
         for portal in two_plus:
             if portal.scene_destination() == "Overworld Redux, Windmill_":
-                portal1 = portal
+                windmill = portal
                 break
-        if not portal1:
-            raise Exception(f"Failed to do Fixed Shop option. "
-                            f"Did {player_name} plando connection the Windmill Shop entrance?")
+        if not windmill:
+            raise Exception(f"Failed to do Fixed Shop option for Entrance Layout. "
+                            f"Did {player_name} plando the Windmill Shop entrance?")
 
-        portal2 = Portal(name=f"Shop Portal {world.shop_num}", region=f"Shop {world.shop_num}",
-                         destination="Previous Region", tag="_")
-        create_shop_region(world, regions)
+        portal_num = get_shop_num(world)
+        shop = Portal(name=f"Shop Portal {portal_num}", region=f"Shop {portal_num}",
+                      destination=str(portal_num), tag="_", direction=Direction.south)
+        create_shop_region(world, regions, portal_num)
 
-        portal_pairs[portal1] = portal2
-        two_plus.remove(portal1)
+        portal_pairs[windmill] = shop
+        two_plus.remove(windmill)
+        if decoupled:
+            two_plus.append(shop)
+            non_dead_end_regions.add(shop.region)
+            connected_regions.add(shop.region)
 
-    random_object: Random = world.random
     # use the seed given in the options to shuffle the portals
     if isinstance(world.options.entrance_rando.value, str):
         random_object = Random(world.options.entrance_rando.value)
+    else:
+        random_object: Random = world.random
+
     # we want to start by making sure every region is accessible
     random_object.shuffle(two_plus)
-    check_success = 0
+
+    # this is a backup in case we run into that rare direction pairing failure
+    # so that we don't have to redo the plando bit basically
+    backup_connected_regions = connected_regions.copy()
+    backup_portal_pairs = portal_pairs.copy()
+    backup_two_plus = two_plus.copy()
+    backup_two_plus_direction_tracker = two_plus_direction_tracker.copy()
+    rare_failure_count = 0
+
     portal1 = None
     portal2 = None
     previous_conn_num = 0
@@ -522,7 +604,7 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
         # should, hopefully, only ever occur if someone plandos connections poorly
         if previous_conn_num == len(connected_regions):
             fail_count += 1
-            if fail_count >= 500:
+            if fail_count > 500:
                 raise Exception(f"Failed to pair regions. Check plando connections for {player_name} for errors. "
                                 f"Unconnected regions: {non_dead_end_regions - connected_regions}.\n"
                                 f"Unconnected portals: {[portal.name for portal in two_plus]}")
@@ -551,13 +633,14 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
         previous_conn_num = len(connected_regions)
 
         # find a portal in a connected region
-        if check_success == 0:
-            for portal in two_plus:
-                if portal.region in connected_regions:
-                    portal1 = portal
-                    two_plus.remove(portal)
-                    check_success = 1
-                    break
+        for portal in two_plus:
+            if portal.region in connected_regions:
+                # if there's more dead ends of a direction than two plus of the opposite direction,
+                # then we'll run out of viable connections for those dead ends later
+                # decoupled does not have this issue since dead ends aren't real in decoupled
+                if not decoupled and entrance_layout == EntranceLayout.option_direction_pairs:
+                    if not too_few_portals_for_direction_pairs(portal.direction, 0):
+                        continue
 
                 portal1 = portal
                 two_plus.remove(portal)
@@ -578,11 +661,49 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
                                                                                     logic_tricks, shuffle_fuses,
                                                                                     shuffle_bells):
                             continue
-                    portal2 = portal
-                    connected_regions.add(portal.region)
-                    two_plus.remove(portal)
-                    check_success = 2
-                    break
+                    # if not waterfall_plando, then we just want to pair secret gathering place now
+                    elif portal.region != "Secret Gathering Place":
+                        continue
+
+                # if they're not facing opposite directions, just continue
+                if entrance_layout == EntranceLayout.option_direction_pairs and not verify_direction_pair(portal, portal1):
+                    continue
+
+                # if you have direction pairs, we need to make sure we don't run out of spots for problem portals
+                # this cuts down on using the failsafe significantly
+                if not decoupled and entrance_layout == EntranceLayout.option_direction_pairs:
+                    should_continue = False
+                    # these portals are weird since they're one-ways essentially
+                    # we need to make sure they are connected in this first phase
+                    south_problems = ["Ziggurat Upper to Ziggurat Entry Hallway",
+                                      "Ziggurat Tower to Ziggurat Upper", "Forest Belltower to Guard Captain Room"]
+                    if (portal.direction == Direction.south and portal.name not in south_problems
+                            and not too_few_portals_for_direction_pairs(portal.direction, 3)):
+                        for test_portal in two_plus:
+                            if test_portal.name in south_problems:
+                                should_continue = True
+                    # at risk of connecting frog's domain entry ladder to librarian exit
+                    if (portal.direction == Direction.ladder_down
+                            or portal.direction == Direction.ladder_up and portal.name != "Frog's Domain Ladder Exit"
+                            and not too_few_portals_for_direction_pairs(portal.direction, 1)):
+                        for test_portal in two_plus:
+                            if test_portal.name == "Frog's Domain Ladder Exit":
+                                should_continue = True
+                    if should_continue:
+                        continue
+
+                portal2 = portal
+                connected_regions.add(get_portal_outlet_region(portal, world))
+                two_plus2.remove(portal)
+                break
+
+        if not portal2:
+            if entrance_layout == EntranceLayout.option_direction_pairs or waterfall_plando:
+                # portal1 doesn't have a valid direction pair yet, throw it back and start over
+                two_plus.append(portal1)
+                continue
+            else:
+                raise Exception(f"TUNIC: Failed to pair portals at second part of first phase for {world.player_name}.")
 
         # once we have both portals, connect them and add the new region(s) to connected_regions
         if not has_laurels and "Secret Gathering Place" in connected_regions:
@@ -590,26 +711,61 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
         connected_regions = update_reachable_regions(connected_regions, traversal_reqs, has_laurels, logic_tricks,
                                                      shuffle_fuses, shuffle_bells)
         portal_pairs[portal1] = portal2
+        two_plus_direction_tracker[portal1.direction] -= 1
+        two_plus_direction_tracker[portal2.direction] -= 1
+        portal1 = None
+        portal2 = None
+        random_object.shuffle(two_plus)
+        if two_plus != two_plus2:
+            random_object.shuffle(two_plus2)
 
     # connect dead ends to random non-dead ends
-    # none of the key events are in dead ends, so we don't need to do gate_before_switch
+    # there are no dead ends in decoupled
     while len(dead_ends) > 0:
         if world.using_ut:
             break
-        portal1 = two_plus.pop()
-        portal2 = dead_ends.pop()
-        portal_pairs[portal1] = portal2
+        portal2 = dead_ends[0]
+        for portal in two_plus:
+            if entrance_layout == EntranceLayout.option_direction_pairs and not verify_direction_pair(portal, portal2):
+                continue
+            if entrance_layout == EntranceLayout.option_fixed_shop and portal.region == "Zig Skip Exit":
+                continue
+            portal1 = portal
+            portal_pairs[portal1] = portal2
+            two_plus.remove(portal1)
+            dead_ends.remove(portal2)
+            break
+        else:
+            raise Exception(f"Failed to pair {portal2.name} with anything in two_plus for player {world.player_name}.")
+
     # then randomly connect the remaining portals to each other
-    # every region is accessible, so gate_before_switch is not necessary
-    while len(two_plus) > 1:
+    final_pair_number = 0
+    while len(two_plus) > 0:
         if world.using_ut:
             break
-        portal1 = two_plus.pop()
-        portal2 = two_plus.pop()
+        final_pair_number += 1
+        if final_pair_number > 10000:
+            raise Exception(f"Failed to pair portals while pairing the final entrances off to each other. "
+                            f"Remaining portals in two_plus: {[portal.name for portal in two_plus]}. "
+                            f"Remaining portals in two_plus2: {[portal.name for portal in two_plus2]}.")
+        portal1 = two_plus[0]
+        two_plus.remove(portal1)
+        portal2 = None
+        if entrance_layout != EntranceLayout.option_direction_pairs:
+            portal2 = two_plus2.pop()
+        else:
+            for portal in two_plus2:
+                if verify_direction_pair(portal1, portal):
+                    portal2 = portal
+                    two_plus2.remove(portal2)
+                    break
+        if portal2 is None:
+            raise Exception("Something went wrong with the remaining two plus portals. Contact the TUNIC rando devs.")
         portal_pairs[portal1] = portal2
 
-    if len(two_plus) == 1:
-        raise Exception("two plus had an odd number of portals, investigate this. last portal is " + two_plus[0].name)
+    if len(two_plus2) > 0:
+        raise Exception(f"TUNIC: Something went horribly wrong in ER for {world.player_name}. "
+                        f"Please contact the TUNIC rando devs.")
 
     return portal_pairs
 
@@ -617,10 +773,14 @@ def pair_portals(world: "TunicWorld", regions: dict[str, Region]) -> dict[Portal
 # loop through our list of paired portals and make two-way connections
 def create_randomized_entrances(world: "TunicWorld", portal_pairs: dict[Portal, Portal], regions: dict[str, Region]) -> None:
     for portal1, portal2 in portal_pairs.items():
-        region1 = regions[portal1.region]
-        region2 = regions[portal2.region]
-        region1.connect(connecting_region=region2, name=portal1.name)
-        region2.connect(connecting_region=region1, name=portal2.name)
+        # connect to the outlet region if there is one, if not connect to the actual region
+        regions[portal1.region].connect(
+            connecting_region=regions[get_portal_outlet_region(portal2, world)],
+            name=portal1.name)
+        if not world.options.decoupled or not world.options.entrance_rando:
+            regions[portal2.region].connect(
+                connecting_region=regions[get_portal_outlet_region(portal1, world)],
+                name=portal2.name)
 
 
 def update_reachable_regions(connected_regions: set[str], traversal_reqs: dict[str, dict[str, list[list[str]]]],
@@ -726,16 +886,9 @@ def sort_portals(portal_pairs: dict[Portal, Portal], world: "TunicWorld") -> dic
     sorted_pairs: dict[str, str] = {}
     reference_list: list[str] = [portal.name for portal in portal_mapping]
 
-    # note: this is not necessary yet since the shop portals aren't numbered yet -- they will be when decoupled happens
     # due to plando, there can be a variable number of shops
-    # I could either do it like this, or just go up to like 200, this seemed better
-    # shop_count = 0
-    # for portal1, portal2 in portal_pairs.items():
-    #     if portal1.name.startswith("Shop"):
-    #         shop_count += 1
-    #     if portal2.name.startswith("Shop"):
-    #         shop_count += 1
-    # reference_list.extend([f"Shop Portal {i + 1}" for i in range(shop_count)])
+    largest_shop_number = max(world.used_shop_numbers)
+    reference_list.extend([f"Shop Portal {i + 1}" for i in range(largest_shop_number)])
 
     for name in reference_list:
         for portal1, portal2 in portal_pairs.items():
@@ -743,4 +896,3 @@ def sort_portals(portal_pairs: dict[Portal, Portal], world: "TunicWorld") -> dic
                 sorted_pairs[portal1.name] = portal2.name
                 break
     return sorted_pairs
-

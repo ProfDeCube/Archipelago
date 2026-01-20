@@ -1,9 +1,12 @@
 # StarCraft 2
 
 ## Game page in other languages:
+
 * [Français](/games/Starcraft%202/info/fr)
 
 ## What does randomization do to this game?
+
+### Items and locations
 
 The following unlocks are randomized as items:
 1. Your ability to build any non-worker unit.
@@ -34,18 +37,28 @@ When you receive items, they will immediately become available, even during a mi
 notified via a text box in the top-right corner of the game screen. 
 Item unlocks are also logged in the Archipelago client.
 
+### Mission order
+
+The missions and the order in which they need to be completed, referred to as the mission order, can also be randomized.
+The four StarCraft 2 campaigns can be used to populate the mission order. 
+Note that the evolution missions from Heart of the Swarm are not included in the randomizer.
+The default mission order follows the structure of the selected campaigns but several other options are available, 
+e.g., blitz, grid, etc.
+
 Missions are launched through the StarCraft 2 Archipelago client, through the StarCraft 2 Launcher tab. 
 The between mission segments on the Hyperion, the Leviathan, and the Spear of Adun are not included. 
 Additionally, metaprogression currencies such as credits and Solarite are not used.
+Available missions are in blue; missions where all locations were collected are in white.
+If you move your mouse over a mission, the uncollected locations will be displayed, categorized by type.
+Unavailable missions are in grey; their requirements will also be shown there.
 
 ## What is the goal of this game when randomized?
 
 The goal is to beat the final mission in the mission order. 
-The yaml configuration file controls the mission order (e.g. blitz, grid, etc.), which combination of the four 
-StarCraft 2 campaigns can be used to populate the mission order and how missions are shuffled. 
+The yaml configuration file controls the mission order, which combination of the four StarCraft 2 campaigns can be 
+used, and how missions are shuffled. 
 Since the first two options determine the number of missions in a StarCraft 2 world, they can be used to customize the 
 expected time to complete the world. 
-Note that the evolution missions from Heart of the Swarm are not included in the randomizer.
 
 ## What non-randomized changes are there from vanilla StarCraft 2?
 
@@ -78,9 +91,7 @@ Will overwrite existing files
 * `/game_speed [game_speed]` Overrides the game speed for the world
     * Options: default, slower, slow, normal, fast, faster
 * `/color [faction] [color]` Changes your color for one of your playable factions.
-    * Faction options: raynor, kerrigan, primal, protoss, nova
-    * Color options: white, red, blue, teal, purple, yellow, orange, green, lightpink, violet, lightgrey, darkgreen, 
-    brown, lightgreen, darkgrey, pink, rainbow, random, default
+    * Run without arguments to list all factions and colors that are available.
 * `/option [option_name] [option_value]` Sets an option normally controlled by your yaml after generation.
     * Run without arguments to list all options.
     * Run without `option_value` to check the current value of the option

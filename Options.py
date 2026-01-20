@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import collections
 import functools
 import logging
 import math
@@ -21,6 +22,12 @@ if typing.TYPE_CHECKING:
     from BaseClasses import MultiWorld, PlandoOptions
     from worlds.AutoWorld import World
     import pathlib
+
+
+def roll_percentage(percentage: int | float) -> bool:
+    """Roll a percentage chance.
+    percentage is expected to be in range [0, 100]"""
+    return random.random() < (float(percentage) / 100)
 
 
 class OptionError(ValueError):
@@ -911,15 +918,49 @@ class OptionDict(Option[typing.Dict[str, typing.Any]], VerifyKeys, typing.Mappin
     def __len__(self) -> int:
         return len(self.value)
 
+    # __getitem__ fallback fails for Counters, so we define this explicitly
+    def __contains__(self, item) -> bool:
+        return item in self.value
 
-class ItemDict(OptionDict):
+
+class OptionCounter(OptionDict):
+    min: int | None = None
+    max: int | None = None
+
+    def __init__(self, value: dict[str, int]) -> None:
+        super(OptionCounter, self).__init__(collections.Counter(value))
+
+    def verify(self, world: type[World], player_name: str, plando_options: PlandoOptions) -> None:
+        super(OptionCounter, self).verify(world, player_name, plando_options)
+
+        range_errors = []
+
+        if self.max is not None:
+            range_errors += [
+                f"\"{key}: {value}\" is higher than maximum allowed value {self.max}."
+                for key, value in self.value.items() if value > self.max
+            ]
+
+        if self.min is not None:
+            range_errors += [
+                f"\"{key}: {value}\" is lower than minimum allowed value {self.min}."
+                for key, value in self.value.items() if value < self.min
+            ]
+
+        if range_errors:
+            range_errors = [f"For option {getattr(self, 'display_name', self)}:"] + range_errors
+            raise OptionError("\n".join(range_errors))
+
+
+class ItemDict(OptionCounter):
     verify_item_name = True
 
-    def __init__(self, value: typing.Dict[str, int]):
-        if any(item_count is None for item_count in value.values()):
-            raise Exception("Items must have counts associated with them. Please provide positive integer values in the format \"item\": count .")
-        if any(item_count < 1 for item_count in value.values()):
-            raise Exception("Cannot have non-positive item counts.")
+    min = 0
+
+    def __init__(self, value: dict[str, int]) -> None:
+        # Backwards compatibility: Cull 0s to make "in" checks behave the same as when this wasn't a OptionCounter
+        value = {item_name: amount for item_name, amount in value.items() if amount != 0}
+
         super(ItemDict, self).__init__(value)
 
 
@@ -1031,7 +1072,7 @@ class PlandoTexts(Option[typing.List[PlandoText]], VerifyKeys):
         if isinstance(data, typing.Iterable):
             for text in data:
                 if isinstance(text, typing.Mapping):
-                    if random.random() < float(text.get("percentage", 100)/100):
+                    if roll_percentage(text.get("percentage", 100)):
                         at = text.get("at", None)
                         if at is not None:
                             if isinstance(at, dict):
@@ -1057,7 +1098,7 @@ class PlandoTexts(Option[typing.List[PlandoText]], VerifyKeys):
                         else:
                             raise OptionError("\"at\" must be a valid string or weighted list of strings!")
                 elif isinstance(text, PlandoText):
-                    if random.random() < float(text.percentage/100):
+                    if roll_percentage(text.percentage):
                         texts.append(text)
                 else:
                     raise Exception(f"Cannot create plando text from non-dictionary type, got {type(text)}")
@@ -1183,7 +1224,7 @@ class PlandoConnections(Option[typing.List[PlandoConnection]], metaclass=Connect
         for connection in data:
             if isinstance(connection, typing.Mapping):
                 percentage = connection.get("percentage", 100)
-                if random.random() < float(percentage / 100):
+                if roll_percentage(percentage):
                     entrance = connection.get("entrance", None)
                     if is_iterable_except_str(entrance):
                         entrance = random.choice(sorted(entrance))
@@ -1201,7 +1242,7 @@ class PlandoConnections(Option[typing.List[PlandoConnection]], metaclass=Connect
                         percentage
                     ))
             elif isinstance(connection, PlandoConnection):
-                if random.random() < float(connection.percentage / 100):
+                if roll_percentage(connection.percentage):
                     value.append(connection)
             else:
                 raise Exception(f"Cannot create connection from non-Dict type, got {type(connection)}.")
@@ -1306,43 +1347,48 @@ class CommonOptions(metaclass=OptionsMetaProperty):
     progression_balancing: ProgressionBalancing
     accessibility: Accessibility
 
-    def as_dict(self,
-                *option_names: str,
-                casing: typing.Literal["snake", "camel", "pascal", "kebab"] = "snake",
-                toggles_as_bools: bool = False) -> typing.Dict[str, typing.Any]:
+    def as_dict(
+            self,
+            *option_names: str,
+            casing: typing.Literal["snake", "camel", "pascal", "kebab"] = "snake",
+            toggles_as_bools: bool = False,
+    ) -> dict[str, typing.Any]:
         """
         Returns a dictionary of [str, Option.value]
 
-        :param option_names: names of the options to return
-        :param casing: case of the keys to return. Supports `snake`, `camel`, `pascal`, `kebab`
-        :param toggles_as_bools: whether toggle options should be output as bools instead of strings
+        :param option_names: Names of the options to get the values of.
+        :param casing: Casing of the keys to return. Supports `snake`, `camel`, `pascal`, `kebab`.
+        :param toggles_as_bools: Whether toggle options should be returned as bools instead of ints.
+
+        :return: A dictionary of each option name to the value of its Option. If the option is an OptionSet, the value
+        will be returned as a sorted list.
         """
         assert option_names, "options.as_dict() was used without any option names."
         assert len(option_names) < len(self.__class__.type_hints), "Specify only options you need."
         option_results = {}
         for option_name in option_names:
-            if option_name in type(self).type_hints:
-                if casing == "snake":
-                    display_name = option_name
-                elif casing == "camel":
-                    split_name = [name.title() for name in option_name.split("_")]
-                    split_name[0] = split_name[0].lower()
-                    display_name = "".join(split_name)
-                elif casing == "pascal":
-                    display_name = "".join([name.title() for name in option_name.split("_")])
-                elif casing == "kebab":
-                    display_name = option_name.replace("_", "-")
-                else:
-                    raise ValueError(f"{casing} is invalid casing for as_dict. "
-                                     "Valid names are 'snake', 'camel', 'pascal', 'kebab'.")
-                value = getattr(self, option_name).value
-                if isinstance(value, set):
-                    value = sorted(value)
-                elif toggles_as_bools and issubclass(type(self).type_hints[option_name], Toggle):
-                    value = bool(value)
-                option_results[display_name] = value
-            else:
+            if option_name not in type(self).type_hints:
                 raise ValueError(f"{option_name} not found in {tuple(type(self).type_hints)}")
+
+            if casing == "snake":
+                display_name = option_name
+            elif casing == "camel":
+                split_name = [name.title() for name in option_name.split("_")]
+                split_name[0] = split_name[0].lower()
+                display_name = "".join(split_name)
+            elif casing == "pascal":
+                display_name = "".join([name.title() for name in option_name.split("_")])
+            elif casing == "kebab":
+                display_name = option_name.replace("_", "-")
+            else:
+                raise ValueError(f"{casing} is invalid casing for as_dict. "
+                                 "Valid names are 'snake', 'camel', 'pascal', 'kebab'.")
+            value = getattr(self, option_name).value
+            if isinstance(value, set):
+                value = sorted(value)
+            elif toggles_as_bools and issubclass(type(self).type_hints[option_name], Toggle):
+                value = bool(value)
+            option_results[display_name] = value
         return option_results
 
 
@@ -1363,6 +1409,7 @@ class StartInventory(ItemDict):
     verify_item_name = True
     display_name = "Start Inventory"
     rich_text_doc = True
+    max = 10000
 
 
 class StartInventoryPool(StartInventory):
@@ -1632,6 +1679,7 @@ class PerGameCommonOptions(CommonOptions):
     exclude_locations: ExcludeLocations
     priority_locations: PriorityLocations
     item_links: ItemLinks
+    plando_items: PlandoItems
 
 
 @dataclass
@@ -1685,6 +1733,7 @@ def get_option_groups(world: typing.Type[World], visibility_level: Visibility = 
 
 def generate_yaml_templates(target_folder: typing.Union[str, "pathlib.Path"], generate_hidden: bool = True) -> None:
     import os
+    from inspect import cleandoc
 
     import yaml
     from jinja2 import Template
@@ -1728,21 +1777,23 @@ def generate_yaml_templates(target_folder: typing.Union[str, "pathlib.Path"], ge
         # yaml dump may add end of document marker and newlines.
         return yaml.dump(scalar).replace("...\n", "").strip()
 
+    with open(local_path("data", "options.yaml")) as f:
+        file_data = f.read()
+    template = Template(file_data)
+
     for game_name, world in AutoWorldRegister.world_types.items():
         if not world.hidden or generate_hidden:
             option_groups = get_option_groups(world)
-            with open(local_path("data", "options.yaml")) as f:
-                file_data = f.read()
-            res = Template(file_data).render(
+
+            res = template.render(
                 option_groups=option_groups,
                 __version__=__version__,
                 game=game_name,
                 world_version=world.world_version.as_simple_string(),
                 yaml_dump=yaml_dump_scalar,
                 dictify_range=dictify_range,
+                cleandoc=cleandoc,
             )
-
-            del file_data
 
             with open(os.path.join(target_folder, get_file_safe_name(game_name) + ".yaml"), "w", encoding="utf-8-sig") as f:
                 f.write(res)
@@ -1769,6 +1820,7 @@ def dump_player_options(multiworld: MultiWorld) -> None:
             player_output = {
                 "Game": multiworld.game[player],
                 "Name": multiworld.get_player_name(player),
+                "ID": player,
             }
             output.append(player_output)
             for option_key, option in world.options_dataclass.type_hints.items():
@@ -1781,7 +1833,7 @@ def dump_player_options(multiworld: MultiWorld) -> None:
                     game_option_names.append(display_name)
 
     with open(output_path(f"generate_{multiworld.seed_name}.csv"), mode="w", newline="") as file:
-        fields = ["Game", "Name", *all_option_names]
+        fields = ["ID", "Game", "Name", *all_option_names]
         writer = DictWriter(file, fields)
         writer.writeheader()
         writer.writerows(output)

@@ -4,6 +4,7 @@ from ..roomEditor import RoomEditor
 from .. import entityData
 import os
 import bsdiff4
+import pkgutil
 
 def imageTo2bpp(filename):
     import PIL.Image

@@ -8,7 +8,6 @@ Currently, the following games are supported:
 * The Legend of Zelda: A Link to the Past
 * Factorio
 * Subnautica
-* Slay the Spire
 * Risk of Rain 2
 * The Legend of Zelda: Ocarina of Time
 * Timespinner
@@ -59,7 +58,6 @@ Currently, the following games are supported:
 * TUNIC
 * Kirby's Dream Land 3
 * Celeste 64
-* Zork Grand Inquisitor
 * Castlevania 64
 * A Short Hike
 * Yoshi's Island

@@ -1,8 +1,11 @@
 import base64
 import datetime
+import io
+import json
 import os
 import platform
 import shutil
+import subprocess
 import sys
 import sysconfig
 import threading
@@ -10,16 +13,9 @@ import urllib.error
 import urllib.request
 import warnings
 import zipfile
-import urllib.request
-import io
-import json
-import threading
-import subprocess
-
+from collections.abc import Iterable, Sequence
 from hashlib import sha3_512
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple, Union
-
 
 
 SNI_VERSION = "v0.0.100"  # change back to "latest" once tray icon issues are fixed
@@ -75,7 +71,6 @@ non_apworlds: set[str] = {
     "Ocarina of Time",
     "Overcooked! 2",
     "Raft",
-    "Slay the Spire",
     "Sudoku",
     "Super Mario 64",
     "VVVVVV",
@@ -218,7 +213,7 @@ def remove_sprites_from_folder(folder: Path) -> None:
                 os.remove(folder / file)
 
 
-def _threaded_hash(filepath: Union[str, Path]) -> str:
+def _threaded_hash(filepath: str | Path) -> str:
     hasher = sha3_512()
     hasher.update(open(filepath, "rb").read())
     return base64.b85encode(hasher.digest()).decode()
@@ -268,7 +263,7 @@ class BuildExeCommand(cx_Freeze.command.build_exe.build_exe):
         self.libfolder = Path(self.buildfolder, "lib")
         self.library = Path(self.libfolder, "library.zip")
 
-    def installfile(self, path: Path, subpath: Optional[Union[str, Path]] = None, keep_content: bool = False) -> None:
+    def installfile(self, path: Path, subpath: str | Path | None = None, keep_content: bool = False) -> None:
         folder = self.buildfolder
         if subpath:
             folder /= subpath
@@ -388,11 +383,7 @@ class BuildExeCommand(cx_Freeze.command.build_exe.build_exe):
         from worlds.Files import APWorldContainer
         assert not non_apworlds - set(AutoWorldRegister.world_types), \
             f"Unknown world {non_apworlds - set(AutoWorldRegister.world_types)} designated for .apworld"
-        folders_to_remove: List[str] = []
-        disabled_worlds_folder = "worlds_disabled"
-        for entry in os.listdir(disabled_worlds_folder):
-            if os.path.isdir(os.path.join(disabled_worlds_folder, entry)):
-                folders_to_remove.append(entry)
+        folders_to_remove: list[str] = []
         generate_yaml_templates(self.buildfolder / "Players" / "Templates", False)
         for worldname, worldtype in AutoWorldRegister.world_types.items():
             if worldname not in non_apworlds:
@@ -484,12 +475,12 @@ class AppImageCommand(setuptools.Command):
         ("app-exec=", None, "The application to run inside the image."),
         ("yes", "y", 'Answer "yes" to all questions.'),
     ]
-    build_folder: Optional[Path]
-    dist_file: Optional[Path]
-    app_dir: Optional[Path]
+    build_folder: Path | None
+    dist_file: Path | None
+    app_dir: Path | None
     app_name: str
-    app_exec: Optional[Path]
-    app_icon: Optional[Path]  # source file
+    app_exec: Path | None
+    app_icon: Path | None  # source file
     app_id: str  # lower case name, used for icon and .desktop
     yes: bool
 
@@ -526,12 +517,12 @@ tmp="${{exe#*/}}"
 if [ ! "${{#tmp}}" -lt "${{#exe}}" ]; then
     exe="{default_exe.parent}/$exe"
 fi
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$APPDIR/{default_exe.parent}/lib"
+export LD_LIBRARY_PATH="${{LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}}$APPDIR/{default_exe.parent}/lib"
 $APPDIR/$exe "$@"
 """)
         launcher_filename.chmod(0o755)
 
-    def install_icon(self, src: Path, name: Optional[str] = None, symlink: Optional[Path] = None) -> None:
+    def install_icon(self, src: Path, name: str | None = None, symlink: Path | None = None) -> None:
         assert self.app_dir, "Invalid app_dir"
         try:
             from PIL import Image
@@ -594,7 +585,7 @@ $APPDIR/$exe "$@"
         subprocess.call(f'ARCH={build_arch} ./appimagetool -n "{self.app_dir}" "{self.dist_file}"', shell=True)
 
 
-def find_libs(*args: str) -> Sequence[Tuple[str, str]]:
+def find_libs(*args: str) -> Sequence[tuple[str, str]]:
     """Try to find system libraries to be included."""
     if not args:
         return []
@@ -602,7 +593,7 @@ def find_libs(*args: str) -> Sequence[Tuple[str, str]]:
     arch = build_arch.replace('_', '-')
     libc = 'libc6'  # we currently don't support musl
 
-    def parse(line: str) -> Tuple[Tuple[str, str, str], str]:
+    def parse(line: str) -> tuple[tuple[str, str, str], str]:
         lib, path = line.strip().split(' => ')
         lib, typ = lib.split(' ', 1)
         for test_arch in ('x86-64', 'i386', 'aarch64'):
@@ -627,8 +618,8 @@ def find_libs(*args: str) -> Sequence[Tuple[str, str]]:
             k: v for k, v in (parse(line) for line in data if "=>" in line)
         }
 
-    def find_lib(lib: str, arch: str, libc: str) -> Optional[str]:
-        cache: Dict[Tuple[str, str, str], str] = getattr(find_libs, "cache")
+    def find_lib(lib: str, arch: str, libc: str) -> str | None:
+        cache: dict[tuple[str, str, str], str] = getattr(find_libs, "cache")
         for k, v in cache.items():
             if k == (lib, arch, libc):
                 return v
@@ -637,7 +628,7 @@ def find_libs(*args: str) -> Sequence[Tuple[str, str]]:
                 return v
         return None
 
-    res: List[Tuple[str, str]] = []
+    res: list[tuple[str, str]] = []
     for arg in args:
         # try exact match, empty libc, empty arch, empty arch and libc
         file = find_lib(arg, arch, libc)
@@ -666,12 +657,13 @@ cx_Freeze.setup(
     ext_modules=cythonize("_speedups.pyx"),
     options={
         "build_exe": {
-            "packages": ["worlds", "kivy", "cymem", "websockets"],
+            "packages": ["worlds", "kivy", "cymem", "websockets", "kivymd"],
             "includes": [],
             "excludes": ["numpy", "Cython", "PySide2", "PIL",
-                         "pandas", "zstandard"],
+                         "pandas"],
+            "zip_includes": [],
             "zip_include_packages": ["*"],
-            "zip_exclude_packages": ["worlds", "sc2"],
+            "zip_exclude_packages": ["worlds", "sc2", "kivymd"],
             "include_files": [],  # broken in cx 6.14.0, we use more special sauce now
             "include_msvcr": False,
             "replace_paths": ["*."],

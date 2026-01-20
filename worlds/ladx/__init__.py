@@ -2,6 +2,7 @@ import binascii
 import dataclasses
 import os
 import typing
+import logging
 import re
 import struct
 
@@ -343,12 +344,13 @@ class LinksAwakeningWorld(World):
                     # Properly fill locations within dungeon
                     location.dungeon = r.dungeon_index
 
-        # For now, special case first item
-        FORCE_START_ITEM = True
-        if FORCE_START_ITEM:
-            self.force_start_item()
+        if self.options.tarins_gift != "any_item":
+            self.force_start_item(itempool)
 
-    def force_start_item(self):    
+
+        self.multiworld.itempool += itempool
+
+    def force_start_item(self, itempool):
         start_loc = self.multiworld.get_location("Tarin's Gift (Mabe Village)", self.player)
         if not start_loc.item:
             """
@@ -388,6 +390,9 @@ class LinksAwakeningWorld(World):
                 # (.remove checks __eq__, which could be a different copy, so we find the first index and use .pop)
                 start_item = itempool.pop(itempool.index(start_item))
                 start_loc.place_locked_item(start_item)
+            else:
+                logging.getLogger("Link's Awakening Logger").warning(f"No {self.options.tarins_gift.current_option_name} available for Tarin's Gift.")
+
 
     def get_pre_fill_items(self):
         return self.pre_fill_items
@@ -465,7 +470,7 @@ class LinksAwakeningWorld(World):
 
         # Sweep to pick up already placed items that are reachable with everything but the dungeon items.
         partial_all_state.sweep_for_advancements()
-        
+
         fill_restrictive(self.multiworld, partial_all_state, all_dungeon_locs_to_fill, all_dungeon_items_to_fill, lock=True, single_player_placement=True, allow_partial=False)
         
 
@@ -493,7 +498,7 @@ class LinksAwakeningWorld(World):
             phrases.update(ItemIconGuessing.GAME_SPECIFIC_PHRASES[foreign_game])
 
         for phrase, icon in phrases.items():
-            if phrase in uppered:
+            if phrase.upper() in uppered:
                 return icon
         # pattern for breaking down camelCase, also separates out digits
         pattern = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[a-zA-Z])(?=\d)")
@@ -614,5 +619,7 @@ class LinksAwakeningWorld(World):
                 option: value.current_key
                 for option, value in dataclasses.asdict(self.options).items() if option in slot_options_display_name
             })
+
+            slot_data.update({"entrance_mapping": self.ladxr_logic.world_setup.entrance_mapping})
 
         return slot_data

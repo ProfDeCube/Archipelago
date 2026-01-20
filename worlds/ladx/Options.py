@@ -686,6 +686,7 @@ class LinksAwakeningOptions(PerGameCommonOptions):
     text_mode: TextMode
     no_flash: NoFlash
     in_game_hints: InGameHints
+    tarins_gift: TarinsGift
     overworld: Overworld
     stabilize_item_pool: StabilizeItemPool
     start_inventory_from_pool: StartInventoryPool

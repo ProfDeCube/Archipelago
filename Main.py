@@ -8,7 +8,6 @@ import time
 from typing import Any
 import zipfile
 import zlib
-from typing import Dict, List, Optional, Set, Tuple, Union
 
 import worlds
 from BaseClasses import CollectionState, Item, Location, LocationProgressType, MultiWorld
@@ -24,7 +23,7 @@ from worlds.generic.Rules import exclusion_rules, locality_rules
 __all__ = ["main"]
 
 
-def main(args, seed=None, baked_server_options: Optional[Dict[str, object]] = None):
+def main(args, seed=None, baked_server_options: dict[str, object] | None = None):
     if not baked_server_options:
         baked_server_options = get_settings().server_options.as_dict()
     assert isinstance(baked_server_options, dict)
@@ -68,10 +67,10 @@ def main(args, seed=None, baked_server_options: Optional[Dict[str, object]] = No
                         f"Items: {len(cls.item_names):{item_count}} | "
                         f"Locations: {len(cls.location_names):{location_count}}")
 
-    del item_digits, location_digits, item_count, location_count
+    del item_count, location_count
 
     # This assertion method should not be necessary to run if we are not outputting any multidata.
-    if not args.skip_output:
+    if not args.skip_output and not args.spoiler_only:
         AutoWorld.call_stage(multiworld, "assert_generate")
 
     AutoWorld.call_all(multiworld, "generate_early")
@@ -140,13 +139,15 @@ def main(args, seed=None, baked_server_options: Optional[Dict[str, object]] = No
     if multiworld.players > 1:
         locality_rules(multiworld)
 
+    multiworld.plando_item_blocks = parse_planned_blocks(multiworld)
+
     AutoWorld.call_all(multiworld, "connect_entrances")
     AutoWorld.call_all(multiworld, "generate_basic")
 
     # remove starting inventory from pool items.
     # Because some worlds don't actually create items during create_items this has to be as late as possible.
     fallback_inventory = StartInventoryPool({})
-    depletion_pool: Dict[int, Dict[str, int]] = {
+    depletion_pool: dict[int, dict[str, int]] = {
         player: getattr(multiworld.worlds[player].options, "start_inventory_from_pool", fallback_inventory).value.copy()
         for player in multiworld.player_ids
     }
@@ -155,7 +156,7 @@ def main(args, seed=None, baked_server_options: Optional[Dict[str, object]] = No
     }
 
     if target_per_player:
-        new_itempool: List[Item] = []
+        new_itempool: list[Item] = []
 
         # Make new itempool with start_inventory_from_pool items removed
         for item in multiworld.itempool:
@@ -184,8 +185,9 @@ def main(args, seed=None, baked_server_options: Optional[Dict[str, object]] = No
         multiworld._all_state = None
 
     logger.info("Running Item Plando.")
-
-    distribute_planned(multiworld)
+    resolve_early_locations_for_planned(multiworld)
+    distribute_planned_blocks(multiworld, [x for player in multiworld.plando_item_blocks
+                                           for x in multiworld.plando_item_blocks[player]])
 
     logger.info('Running Pre Main Fill.')
 
@@ -215,6 +217,15 @@ def main(args, seed=None, baked_server_options: Optional[Dict[str, object]] = No
     logger.info(f'Beginning output...')
     outfilebase = 'AP_' + multiworld.seed_name
 
+    if args.spoiler_only:
+        if args.spoiler > 1:
+            logger.info('Calculating playthrough.')
+            multiworld.spoiler.create_playthrough(create_paths=args.spoiler > 2)
+
+        multiworld.spoiler.to_file(output_path('%s_Spoiler.txt' % outfilebase))
+        logger.info('Done. Skipped multidata modification. Total time: %s', time.perf_counter() - start)
+        return multiworld
+
     output = tempfile.TemporaryDirectory()
     with output as temp_dir:
         output_players = [player for player in multiworld.player_ids if AutoWorld.World.generate_output.__code__
@@ -229,7 +240,7 @@ def main(args, seed=None, baked_server_options: Optional[Dict[str, object]] = No
                     pool.submit(AutoWorld.call_single, multiworld, "generate_output", player, temp_dir))
 
             # collect ER hint info
-            er_hint_data: Dict[int, Dict[int, str]] = {}
+            er_hint_data: dict[int, dict[int, str]] = {}
             AutoWorld.call_all(multiworld, 'extend_hint_information', er_hint_data)
 
             def write_multidata():
@@ -274,7 +285,7 @@ def main(args, seed=None, baked_server_options: Optional[Dict[str, object]] = No
                         for player in multiworld.groups[location.item.player]["players"]:
                             precollected_hints[player].add(hint)
 
-                locations_data: Dict[int, Dict[int, Tuple[int, int, int]]] = {player: {} for player in multiworld.player_ids}
+                locations_data: dict[int, dict[int, tuple[int, int, int]]] = {player: {} for player in multiworld.player_ids}
                 for location in multiworld.get_filled_locations():
                     if type(location.address) == int:
                         assert location.item.code is not None, "item code None should be event, " \
@@ -301,13 +312,14 @@ def main(args, seed=None, baked_server_options: Optional[Dict[str, object]] = No
                     game_world.game: worlds.network_data_package["games"][game_world.game]
                     for game_world in multiworld.worlds.values()
                 }
+                data_package["Archipelago"] = worlds.network_data_package["games"]["Archipelago"]
 
-                checks_in_area: Dict[int, Dict[str, Union[int, List[int]]]] = {}
+                checks_in_area: dict[int, dict[str, int | list[int]]] = {}
 
                 # get spheres -> filter address==None -> skip empty
-                spheres: List[Dict[int, Set[int]]] = []
+                spheres: list[dict[int, set[int]]] = []
                 for sphere in multiworld.get_sendable_spheres():
-                    current_sphere: Dict[int, Set[int]] = collections.defaultdict(set)
+                    current_sphere: dict[int, set[int]] = collections.defaultdict(set)
                     for sphere_location in sphere:
                         current_sphere[sphere_location.player].add(sphere_location.address)
 

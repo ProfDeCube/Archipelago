@@ -29,6 +29,8 @@ class TestWalnutsanityNone(SVWalnutsanityTestBase):
     options = {
         ExcludeGingerIsland: ExcludeGingerIsland.option_false,
         Walnutsanity: Walnutsanity.preset_none,
+        SkillProgression: ToolProgression.option_progressive,
+        ToolProgression: ToolProgression.option_progressive,
     }
     unexpected_walnut_locations = {
         "Walnutsanity: Open Golden Coconut",
@@ -74,6 +76,8 @@ class TestWalnutsanityPuzzles(SVWalnutsanityTestBase):
     options = {
         ExcludeGingerIsland: ExcludeGingerIsland.option_false,
         Walnutsanity: frozenset({WalnutsanityOptionName.puzzles}),
+        SkillProgression: ToolProgression.option_progressive,
+        ToolProgression: ToolProgression.option_progressive,
     }
     expected_walnut_locations = {
         "Walnutsanity: Open Golden Coconut",
@@ -105,11 +109,11 @@ class TestWalnutsanityPuzzles(SVWalnutsanityTestBase):
         self.collect("Progressive Sword", 5)
         self.collect("Combat Level", 10)
         self.collect("Mining Level", 10)
-        for location in locations:
-            self.assert_cannot_reach_location(location, self.multiworld.state)
+        for location in location_names:
+            self.assert_cannot_reach_location(location)
         self.collect("Open Professor Snail Cave")
-        for location in locations:
-            self.assert_can_reach_location(location, self.multiworld.state)
+        for location in location_names:
+            self.assert_can_reach_location(location)
 
 
 class TestWalnutsanityBushes(SVWalnutsanityTestBase):

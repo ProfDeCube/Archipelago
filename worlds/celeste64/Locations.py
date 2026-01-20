@@ -1,7 +1,7 @@
 from typing import Dict, NamedTuple, Optional
 
 from BaseClasses import Location
-from .Names import LocationName
+from .Names import LocationName, RegionName
 
 
 celeste_64_base_id: int = 0xCA0000
@@ -50,33 +50,47 @@ strawberry_location_data_table: Dict[str, Celeste64LocationData] = {
 }
 
 friend_location_data_table: Dict[str, Celeste64LocationData] = {
-    LocationName.granny_1:   Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x100 + 0x00),
-    LocationName.granny_2:   Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x100 + 0x01),
-    LocationName.granny_3:   Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x100 + 0x02),
-    LocationName.theo_1:     Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x100 + 0x03),
-    LocationName.theo_2:     Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x100 + 0x04),
-    LocationName.theo_3:     Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x100 + 0x05),
-    LocationName.badeline_1: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x100 + 0x06),
-    LocationName.badeline_2: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x100 + 0x07),
-    LocationName.badeline_3: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x100 + 0x08),
+    LocationName.granny_1:   Celeste64LocationData(RegionName.granny_island,   celeste_64_base_id + 0x100 + 0x00),
+    LocationName.granny_2:   Celeste64LocationData(RegionName.granny_island,   celeste_64_base_id + 0x100 + 0x01),
+    LocationName.granny_3:   Celeste64LocationData(RegionName.granny_island,   celeste_64_base_id + 0x100 + 0x02),
+    LocationName.theo_1:     Celeste64LocationData(RegionName.granny_island,   celeste_64_base_id + 0x100 + 0x03),
+    LocationName.theo_2:     Celeste64LocationData(RegionName.granny_island,   celeste_64_base_id + 0x100 + 0x04),
+    LocationName.theo_3:     Celeste64LocationData(RegionName.granny_island,   celeste_64_base_id + 0x100 + 0x05),
+    LocationName.badeline_1: Celeste64LocationData(RegionName.badeline_island, celeste_64_base_id + 0x100 + 0x06),
+    LocationName.badeline_2: Celeste64LocationData(RegionName.badeline_island, celeste_64_base_id + 0x100 + 0x07),
+    LocationName.badeline_3: Celeste64LocationData(RegionName.badeline_island, celeste_64_base_id + 0x100 + 0x08),
 }
 
 sign_location_data_table: Dict[str, Celeste64LocationData] = {
-    LocationName.sign_1: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x200 + 0x00),
-    LocationName.sign_2: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x200 + 0x01),
-    LocationName.sign_3: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x200 + 0x02),
-    LocationName.sign_4: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x200 + 0x03),
-    LocationName.sign_5: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x200 + 0x04),
+    LocationName.sign_1: Celeste64LocationData(RegionName.granny_island,   celeste_64_base_id + 0x200 + 0x00),
+    LocationName.sign_2: Celeste64LocationData(RegionName.granny_island,   celeste_64_base_id + 0x200 + 0x01),
+    LocationName.sign_3: Celeste64LocationData(RegionName.highway_island,  celeste_64_base_id + 0x200 + 0x02),
+    LocationName.sign_4: Celeste64LocationData(RegionName.se_house_island, celeste_64_base_id + 0x200 + 0x03),
+    LocationName.sign_5: Celeste64LocationData(RegionName.badeline_island, celeste_64_base_id + 0x200 + 0x04),
 }
 
 car_location_data_table: Dict[str, Celeste64LocationData] = {
-    LocationName.car_1: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x300 + 0x00),
-    LocationName.car_2: Celeste64LocationData("Forsaken City", celeste_64_base_id + 0x300 + 0x01),
+    LocationName.car_1: Celeste64LocationData(RegionName.intro_islands, celeste_64_base_id + 0x300 + 0x00),
+    LocationName.car_2: Celeste64LocationData(RegionName.granny_island, celeste_64_base_id + 0x300 + 0x01),
+}
+
+checkpoint_location_data_table: Dict[str, Celeste64LocationData] = {
+    LocationName.checkpoint_1:  Celeste64LocationData(RegionName.intro_islands,        celeste_64_base_id + 0x400 + 0x00),
+    LocationName.checkpoint_2:  Celeste64LocationData(RegionName.granny_island,        celeste_64_base_id + 0x400 + 0x01),
+    LocationName.checkpoint_3:  Celeste64LocationData(RegionName.granny_island,        celeste_64_base_id + 0x400 + 0x02),
+    LocationName.checkpoint_4:  Celeste64LocationData(RegionName.granny_island,        celeste_64_base_id + 0x400 + 0x03),
+    LocationName.checkpoint_5:  Celeste64LocationData(RegionName.highway_island,       celeste_64_base_id + 0x400 + 0x04),
+    LocationName.checkpoint_6:  Celeste64LocationData(RegionName.highway_island,       celeste_64_base_id + 0x400 + 0x05),
+    LocationName.checkpoint_7:  Celeste64LocationData(RegionName.ne_feathers_island,   celeste_64_base_id + 0x400 + 0x06),
+    LocationName.checkpoint_8:  Celeste64LocationData(RegionName.se_house_island,      celeste_64_base_id + 0x400 + 0x07),
+    LocationName.checkpoint_9:  Celeste64LocationData(RegionName.badeline_tower_upper, celeste_64_base_id + 0x400 + 0x08),
+    LocationName.checkpoint_10: Celeste64LocationData(RegionName.badeline_island,      celeste_64_base_id + 0x400 + 0x09),
 }
 
 location_data_table: Dict[str, Celeste64LocationData] = {**strawberry_location_data_table,
                                                          **friend_location_data_table,
                                                          **sign_location_data_table,
-                                                         **car_location_data_table}
+                                                         **car_location_data_table,
+                                                         **checkpoint_location_data_table}
 
 location_table = {name: data.address for name, data in location_data_table.items() if data.address is not None}

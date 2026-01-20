@@ -40,6 +40,8 @@ class RaftWorld(World):
     options_dataclass = RaftOptions
     options: RaftOptions
 
+    extraItemNamePool: list[str] | None = None
+
     required_client_version = (0, 3, 4)
 
     def create_items(self):
@@ -52,19 +54,14 @@ class RaftWorld(World):
         pool = []
         frequencyItems = []
         for item in item_table:
-            raft_item = self.create_item_replaceAsNecessary(item["name"])
+            raft_item = self.create_item(self.replace_item_name_as_necessary(item["name"]))
             if isFillingFrequencies and "Frequency" in item["name"]:
                 frequencyItems.append(raft_item)
             else:
                 pool.append(raft_item)
 
-        extraItemNamePool = []
+        self.extraItemNamePool = []
         extras = len(location_table) - len(item_table) - 1 # Victory takes up 1 unaccounted-for slot
-        if extras > 0:
-            if (self.options.filler_item_types != self.options.filler_item_types.option_duplicates): # Use resource packs
-                for packItem in resourcePackItems:
-                    for i in range(minimumResourcePackAmount, maximumResourcePackAmount + 1):
-                        extraItemNamePool.append(createResourcePackName(i, packItem))
 
         if (self.options.filler_item_types != self.options.filler_item_types.option_duplicates): # Use resource packs
             for packItem in resourcePackItems:
@@ -98,10 +95,11 @@ class RaftWorld(World):
             for item in dupeItemPool:
                 self.extraItemNamePool.append(self.replace_item_name_as_necessary(item["name"]))
             
-            if (len(extraItemNamePool) > 0):
-                for randomItem in self.random.choices(extraItemNamePool, k=extras):
-                    raft_item = self.create_item_replaceAsNecessary(randomItem)
-                    pool.append(raft_item)
+        assert self.extraItemNamePool, f"Don't know what extra items to create for {self.player_name}."
+
+        for randomItem in self.random.choices(self.extraItemNamePool, k=extras):
+            raft_item = self.create_item(randomItem)
+            pool.append(raft_item)
 
         self.multiworld.itempool += pool
 
@@ -112,19 +110,35 @@ class RaftWorld(World):
         if frequencyItems:
             self.place_frequencyItems(frequencyItems)
 
+    def get_filler_item_name(self) -> str:
+        # A normal Raft world will have an extraItemNamePool defined after create_items.
+        if self.extraItemNamePool:
+            return self.random.choice(self.extraItemNamePool)
+
+        # If this is a "fake" world, e.g. item links with link replacement: Resource packs are always be safe to create
+        minRPSpecified = self.options.minimum_resource_pack_amount.value
+        maxRPSpecified = self.options.maximum_resource_pack_amount.value
+        minimumResourcePackAmount = min(minRPSpecified, maxRPSpecified)
+        maximumResourcePackAmount = max(minRPSpecified, maxRPSpecified)
+        resource_amount = self.random.randint(minimumResourcePackAmount, maximumResourcePackAmount)
+        resource_type = self.random.choice(resourcePackItems)
+        return createResourcePackName(resource_amount, resource_type)
+
     def set_rules(self):
         set_rules(self.multiworld, self.player)
 
     def create_regions(self):
         create_regions(self.multiworld, self.player)
-    
-    def create_item_replaceAsNecessary(self, name: str) -> Item:
-        isFrequency = "Frequency" in name
-        shouldUseProgressive = bool((isFrequency and self.options.island_frequency_locations == self.options.island_frequency_locations.option_progressive)
-            or (not isFrequency and self.options.progressive_items))
-        if shouldUseProgressive and name in progressive_table:
-            name = progressive_table[name]
-        return self.create_item(name)
+
+    def replace_item_name_as_necessary(self, name: str) -> str:
+        if name not in progressive_table:
+            return name
+        if "Frequency" in name:
+            if self.options.island_frequency_locations == self.options.island_frequency_locations.option_progressive:
+                return progressive_table[name]
+        elif self.options.progressive_items:
+            return progressive_table[name]
+        return name
 
     def create_item(self, name: str) -> Item:
         item = lookup_name_to_item[name]
