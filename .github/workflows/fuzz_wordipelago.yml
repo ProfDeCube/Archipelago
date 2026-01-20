@@ -1,9 +1,9 @@
-name: Fuzz APWorld
+name: Fuzz wordipelago APWorld
 on:
   push:
-    branches: '**'
+    branches: '*wordipelago*'
   pull_request:
-    branches: '**'
+    branches: '*wordipelago*'
 
 
 jobs:
