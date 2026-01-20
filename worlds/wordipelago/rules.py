@@ -140,10 +140,10 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location("Used " + key).item_rule = lambda item, key=key: item.name != "Letter " + key
         
     for shop_check in range(world.options.minimum_point_shop_checks):
-        if(shop_check % 2 == 0 and shop_check <= 10):
-            world.get_location("Point Shop Purchase " + str(shop_check + 1)).progress_type = LocationProgressType.PRIORITY
-        else:
-            world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: item.name != 'Shop Points'
+        # if(shop_check % 2 == 0 and shop_check <= 10):
+        #     world.get_location("Point Shop Purchase " + str(shop_check + 1)).progress_type = LocationProgressType.PRIORITY
+        # else:
+        world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: item.name != 'Shop Points'
 
     if(world.options.yellow_checks.value == 1):
         
