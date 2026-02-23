@@ -166,8 +166,8 @@ class WordipelagoWorld(World):
         
         for i in range(self.options.starting_guesses.value):
             self.multiworld.push_precollected(self.create_item('Guess'))
-        if(self.options.starting_guesses.value < 3):
-            self.multiworld.early_items[self.player]["Guess"] = 3 - self.options.starting_guesses.value 
+        if(self.options.starting_guesses.value < 2):
+            self.multiworld.early_items[self.player]["Guess"] = 1 
         if(self.options.yellow_unlocked): 
             self.multiworld.push_precollected(self.create_item('Yellow Letters'))
         if(self.options.unused_letters_unlocked): 
@@ -255,7 +255,7 @@ class WordipelagoWorld(World):
         item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count + self.options.additional_guesses
         if not self.options.yellow_unlocked: 
             item_count += 1
-            self.multiworld.early_items[self.player]["Yellow Letters"] = 1
+            # self.multiworld.early_items[self.player]["Yellow Letters"] = 1
 
         if not self.options.unused_letters_unlocked: 
             item_count += 1
