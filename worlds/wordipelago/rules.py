@@ -15,6 +15,15 @@ def end_game_event_check(state, world):
     if(win_condition == 2):
         return state.has(str(world.options.word_checks) + " Words", world.player) and state.has(str(world.options.word_streak_checks) + ' Streaks', world.player)
 
+def player_can_spell(state, player, word):
+    letters = set(word)
+    for letter in letters:
+        if state.has("Letter " + letter, player):
+            continue
+        else:
+            return False
+    return True
+
 def all_needed_locations_checked(state, player):
     return state.has("Word Master", player)
 
@@ -41,7 +50,7 @@ def create_rules(world: "WordipelagoWorld"):
 
     multiworld.get_region("Menu", player).add_exits(['Letters'])
     multiworld.get_region("Letters", player).add_exits(
-        [ "Word Best", "Green Checks", "Yellow Checks", 'Point Shop'],
+        [ "Word Best", "Green Checks", "Yellow Checks", 'Point Shop', 'Key Words'],
         {"Point Shop": lambda state: needed_for_words(state, world.player, *(rules_for_difficulty["green"][str(world.options.point_shop_logic_level.value)]))}
     )
     
@@ -140,10 +149,14 @@ def create_rules(world: "WordipelagoWorld"):
         world.get_location("Used " + key).item_rule = lambda item, key=key: item.name != "Letter " + key
         
     for shop_check in range(world.options.minimum_point_shop_checks):
-        # if(shop_check % 2 == 0 and shop_check <= 10):
-        #     world.get_location("Point Shop Purchase " + str(shop_check + 1)).progress_type = LocationProgressType.PRIORITY
-        # else:
         world.get_location("Point Shop Purchase " + str(shop_check + 1)).item_rule =  lambda item: item.name != 'Shop Points'
+        
+    if(world.options.grass_sanity.value):
+        world.get_location("Grass").access_rule = lambda state, player=player: state.has("Letter G", player) and state.has("Letter R", player) and state.has("Letter A", player) and state.has("Letter S", player) 
+        
+    for key_word_index in range(len(world.options.key_words.value)):
+        key_word = world.options.key_words.value[key_word_index]
+        world.get_location("Key Word " + str(key_word_index + 1)).access_rule = lambda state, player=player, key_word=key_word: player_can_spell(state, player, key_word)
 
     if(world.options.yellow_checks.value == 1):
         

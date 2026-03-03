@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Choice, OptionGroup, Range, Toggle, PerGameCommonOptions, StartInventoryPool
+from Options import Choice, OptionGroup, OptionSet, Range, Toggle, PerGameCommonOptions, StartInventoryPool
 
 class WordChecks(Range):
     """How many words you have to get right to hit you goal"""
@@ -71,6 +71,19 @@ class TimeRewardSeconds(Range):
 class YellowUnlocked(Toggle):
     """Whether you start with yellow letters unlocked at the start of the game."""
     display_name = "Yellow Unlocked"
+
+class EarlyYellow(Toggle):
+    """Whether Yellow Letters is pushed to early locations."""
+    display_name = "Early Yellow"
+    
+class GrassSanity(Toggle):
+    """Adds a check for spelling the word 'Grass'."""
+    display_name = "Grasssanity"
+    
+class KeyWords(OptionSet):
+    """Adds checks for spelling specified words. (max 20)"""
+    display_name = "Key Words"
+    default = []
 
 class UnusedLettersUnlocked(Toggle):
     """Whether you start with keyboard letters fading out when discovered not to be in the current word."""
@@ -235,6 +248,7 @@ class WordipelagoOptions(PerGameCommonOptions):
     additional_guesses: AdditionalGuesses
     starting_cooldown: StartingCooldown
     yellow_unlocked: YellowUnlocked
+    early_yellow: EarlyYellow
     unused_letters_unlocked: UnusedLettersUnlocked
     shuffle_typing: ShuffleTyping
     
@@ -254,6 +268,8 @@ class WordipelagoOptions(PerGameCommonOptions):
     green_checks: GreenChecks
     yellow_checks: YellowChecks
     letter_checks: LetterChecks
+    grass_sanity: GrassSanity
+    key_words: KeyWords
     
     # Items
     time_reward_count: TimeRewardCount
@@ -277,6 +293,7 @@ option_groups = [
         AdditionalGuesses,
         StartingCooldown,
         YellowUnlocked,
+        EarlyYellow,
         UnusedLettersUnlocked,
         ShuffleTyping
     ]),
@@ -295,7 +312,9 @@ option_groups = [
         PointShopCheckPrice,
         GreenChecks,
         YellowChecks,
-        LetterChecks
+        LetterChecks,
+        GrassSanity,
+        KeyWords
     ]),
     OptionGroup("Items", [
         TimeRewardCount,
