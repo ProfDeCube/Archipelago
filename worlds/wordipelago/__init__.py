@@ -42,7 +42,7 @@ class WordipelagoWorld(World):
     def generate_early(self):
         location_count = self.options.word_checks + self.options.word_streak_checks + self.options.minimum_point_shop_checks
         
-        key_words = [word.upper() for word in self.options.key_words.value if len(word) == 5]
+        key_words = [word.upper() for word in self.options.key_words.value if len(word) == 5 and word.isalpha()]
         self.multiworld.random.shuffle(key_words)
         self.options.key_words.value = key_words[:20]
         
