@@ -42,6 +42,10 @@ class WordipelagoWorld(World):
     def generate_early(self):
         location_count = self.options.word_checks + self.options.word_streak_checks + self.options.minimum_point_shop_checks
         
+        key_words = [word.upper() for word in self.options.key_words.value if len(word) == 5 and word.isalpha()]
+        self.multiworld.random.shuffle(key_words)
+        self.options.key_words.value = key_words[:20]
+        
 
         if(self.options.letter_checks >= 1):
             location_count += 6
@@ -55,6 +59,10 @@ class WordipelagoWorld(World):
             location_count += 31
         if(self.options.yellow_checks == 1):
             location_count += 31
+        if(self.options.grass_sanity.value):
+            location_count += 1
+        location_count += len(self.options.key_words.value)
+            
         
         item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.additional_guesses
         if not self.options.yellow_unlocked: 
@@ -106,7 +114,9 @@ class WordipelagoWorld(World):
                 "extra_cooldown_trap_size",
                 "shop_points_item_size",
                 "point_shop_check_price",
-                "word_weighting"
+                "word_weighting",
+                "grass_sanity",
+                "key_words"
             )
             game_rule_logic = dict(rule_logic[self.options.logic_difficulty.value])
             game_rule_logic["pointShop"] = rule_logic[self.options.logic_difficulty.value]["green"][str(self.options.point_shop_logic_level.value)]
@@ -170,6 +180,8 @@ class WordipelagoWorld(World):
             self.multiworld.early_items[self.player]["Guess"] = 1 
         if(self.options.yellow_unlocked): 
             self.multiworld.push_precollected(self.create_item('Yellow Letters'))
+        elif(self.options.early_yellow):
+            self.multiworld.early_items[self.player]["Yellow Letters"] = 1 
         if(self.options.unused_letters_unlocked): 
             self.multiworld.push_precollected(self.create_item('Unused Letters'))
 
@@ -197,6 +209,9 @@ class WordipelagoWorld(World):
             location_count += 31
         if(self.options.yellow_checks == 1):
             location_count += 31
+        if(self.options.grass_sanity.value):
+            location_count += 1
+        location_count += len(self.options.key_words.value)
 
 
         item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count + self.options.additional_guesses
@@ -251,11 +266,13 @@ class WordipelagoWorld(World):
             location_count += 31
         if(self.options.yellow_checks == 1):
             location_count += 31
+        if(self.options.grass_sanity.value):
+            location_count += 1
+        location_count += len(self.options.key_words.value)
 
         item_count = (26 - self.options.starting_letters) + (6 - self.options.starting_guesses) + self.options.time_reward_count + self.options.additional_guesses
         if not self.options.yellow_unlocked: 
             item_count += 1
-            # self.multiworld.early_items[self.player]["Yellow Letters"] = 1
 
         if not self.options.unused_letters_unlocked: 
             item_count += 1
@@ -303,6 +320,16 @@ class WordipelagoWorld(World):
                     locs = locs + 1
                     name = "Point Shop Purchase " + str(i + 1)
                     region.add_locations({name: 3001 + i})
+                    
+            if(region_name == 'Key Words'):
+                if self.options.grass_sanity.value:
+                    locs = locs + 1
+                    name = "Grass"
+                    region.add_locations({name: 4000})
+                for i in range(len(self.options.key_words.value)):
+                    locs = locs + 1
+                    name = "Key Word " + str(i + 1)
+                    region.add_locations({name: 4001 + i})
 
 
     
